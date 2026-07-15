@@ -1,12 +1,267 @@
 {
   "feed": [
     {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-chengalpattu/primary-health-center-built-at-a-cost-of-rs-150-crore-inaugurated/4269867",
+      "title": "ரூ.1.50 கோடியில் கட்டப்பட்ட ஆரம்ப சுகாதார நிலையம் திறப்பு",
+      "description": "திருப்போரூர்: சிறுங்குன்றத்தில் 1.50 கோடி ரூபாய் மதிப்பில் புதிதாக கட்டப்பட்ட ஆரம்ப சுகாதார நிலையத்தை, காணொலி",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269867.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "health",
+        "places",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:40:00+05:30",
+      "id": "ddd7a81d826e",
+      "published": "3 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-chengalpattu/in-a-crisis-the-electricity-board-office-is-urged-to-be-relocated-to-another-location/4269866",
+      "title": "நெருக்கடியில் மின்வாரிய அலுவலகம் வேறு இடத்திற்கு மாற்ற வலியுறுத்தல்",
+      "description": "சதுரங்கப்பட்டினம்; சதுரங்கப்பட்டினத்தில் இட நெருக்கடியில் இயங்கும் மின்வாரிய அலுவலகத்திற்கு, அதே",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269866.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:39:00+05:30",
+      "id": "c43d1e6192e9",
+      "published": "4 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://tamil.indianexpress.com/tamilnadu/tamil-news-today-tamil-nadu-heat-wave-july-15-senthil-balaji-arrest-tvk-mla-horse-trading-case-palani-temple-land-case-12164592",
+      "title": "Chennai News Today LIVE Updates: ஆஜரானால் வேறு வழக்கில் கைது செய்ய வாய்ப்பு: சென்னை துணை ஆணையருக்கு செந்தில் பாலாஜி பரபரப்பு கடிதம்",
+      "description": "Tamil Nadu Latest Live News Updates இன்று நடக்கும் முக்கிய நிகழ்வுகளை உடனுக்குடன் தெரிந்து கொள்ள இந்தியன் எக்ஸ்பிரஸ் தமிழ் இணையதளத்துடன் தொடர்ந்து இணைந்திருங்கள்!",
+      "image_url": "https://img-cdn.publive.online/fit-in/1200x675/indian-express-tamil/media/media_files/2026/04/11/senthil-balaji-2026-04-11-07-56-10.jpg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "politics",
+        "religion & spirituality",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:35:22+05:30",
+      "id": "0a0a780f05fc",
+      "published": "8 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-thiruvallur/boiler-explosion-at-sipcot-factory-bihar-worker-dies-9-admitted/4269865",
+      "title": "சிப்காட் தொழிற்சாலையில் பாய்லர் வெடித்து விபரீதம்! பீஹார் மாநில தொழிலாளி பலி; 9 பேர் அட்மிட்",
+      "description": "கும்மிடிப்பூண்டி: கும்மிடிப்பூண்டி சிப்காட ் தொழில் பூங்காவில் உள்ள உலோக உருக்காலையில், பாய்லர் வெடித்து",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269865.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "bihar",
+        "factory",
+        "places",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:31:00+05:30",
+      "id": "9570d80f2977",
+      "published": "12 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://tamil.newsbytesapp.com/news/world/us-senate-revised-russia-sanctions-bill-lowers-tariff-on-india/story",
+      "title": "ரஷ்யா மீதான தடை மசோதா: இந்தியா, சீனா மீதான இறக்குமதி வரி அச்சுறுத்தலை குறைத்தது அமெரிக்க செனட்",
+      "description": "ரஷ்யாவிடமிருந்து கச்சா எண்ணெய் மற்றும் இயற்கை எரிவாயுவை வாங்கும் இந்தியா மற்றும் சீனா உள்ளிட்ட நாடுகள் மீது விதிக்கப்படவிருந்த அபராத இறக்குமதி வரி அச்சுறுத்தலை கணிசமாக குறைக்கும் வகையில், திருத்தப்பட்ட புதிய தடை மசோதாவை அமெரிக்க செனட் சபை அறிமுகப்படுத்தியுள்ளது",
+      "image_url": "https://i.cdn.newsbytesapp.com/ta/images/l27720260715072852.jpeg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "indian",
+        "world-news"
+      ],
+      "time_published": "2026-07-15T07:29:23+05:30",
+      "id": "660d3e99ad50",
+      "published": "14 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-kancheepuram/esi-hospital-opens-in-sriperumbudur-at-a-cost-of-rs-136-crore/4269863",
+      "title": "ஸ்ரீபெரும்புதுாரில் ரூ.136 கோடியில் இ.எஸ்.ஐ., மருத்துவமனை திறப்பு",
+      "description": "ஸ்ரீபெரும்புதுார்: காஞ்சிபுரம் மாவட்டம், ஸ்ரீபெரும்புதுாரில் 136 கோடி ரூபாய் மதிப்பீட்டில், 100 படுக்கை",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269863.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "hospital",
+        "places",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:28:00+05:30",
+      "id": "48468026798a",
+      "published": "15 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.hindutamil.in/news/tamilnadu/ed-also-decides-to-investigate-for-case-regarding-bargaining-with-tvk-mla",
+      "title": "தவெக எம்எல்ஏ-விடம் பேரம் பேசிய வழக்கு: அமலாக்கத் துறையும் விசாரணை செய்ய முடிவு",
+      "description": "சென்னை: கிருஷ்ணகிரி மாவட்டம், ஊத்தங்கரை தொகுதி தவெக எம்எல்ஏ இளையராஜாவிடம், அக்கட்சியிலிருந்து விலகி ஆட்சி யைக் கவிழ்க்க ஒத்துழைக்க வேண்டும் என ரூ.35 கோடி வரை பே",
+      "image_url": "https://cf-images.assettype.com/hindutamil-prod%2F2026-07-15%2F2f5di9cq%2F6.jpg?w=1200&ar=40%3A21&auto=format%2Ccompress&ogImage=true&mode=crop&enlarge=true&overlay=false&overlay_position=bottom&overlay_width=100",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "politics"
+      ],
+      "time_published": "2026-07-15T07:27:30.425000+05:30",
+      "id": "81b73749f18c",
+      "published": "16 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-kancheepuram/muchandhi-amman-temple-under-the-royal-tree-in-erivai-village/4269862",
+      "title": "ஏரிவாய் கிராம அரச மரத்தடியில் முச்சந்தி அம்மன் கோவில்",
+      "description": "காஞ்சிபுரம்: காஞ்சிபுரம் அருகே ஏரிவாய் கிராமத்தில், அரச மரத்தின் அடிப்பகுதியில் இயற்கையாக உருவான குகை போன்ற",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269862.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "religion & spirituality",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:27:00+05:30",
+      "id": "025904d989a4",
+      "published": "16 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-kancheepuram/super-sucker-vehicle-for-kanchi-at-rs-120-crore-permanent-solution-to-sewage-problem-mayor-informs/4269861",
+      "title": "காஞ்சிக்கு ரூ.1.20 கோடியில் சூப்பர் சக்கர் வாகனம்; கழிவுநீர் பிரச்னைக்கு நிரந்தர தீர்வு: மேயர் தகவல்",
+      "description": "காஞ்சிபுரம்: காஞ்சிபுரம் மாநகராட்சியில் கழிவுநீர் பிரச்னைக்கு நிரந்தர தீர்வு காணும் வகையில், 1.20 கோடியில்",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269861.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T07:24:00+05:30",
+      "id": "fee9b408c58c",
+      "published": "19 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com",
+      "title": "தினமலர் தமிழ் செய்திகள் | Tamil News | Latest News in Tamil | Breaking News",
+      "description": "உண்மை செய்திகள் உடனுக்குடன். தமிழகம், இந்தியா, உலகம் வர்த்தகம், விளையாட்டு, சினிமா, ஆன்மிகம் போன்ற அனைத்து செய்திகளை தெரிந்துகொள்ளலாம் - Dinamalar",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269860.jpg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [],
+      "time_published": "2026-07-15T07:21:00+05:30",
+      "id": "e8a2890662e0",
+      "published": "22 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://tamil.indianexpress.com/science/the-hidden-secret-switch-of-marine-bacteria-how-starving-ocean-bacteria-are-accelerating-climate-change-12162642",
+      "title": "ஆக்சிஜன் நீரிலும் உற்பத்தியான மீத்தேன்: பல ஆண்டு கால புதிருக்கு விடை கண்டுபிடித்த விஞ்ஞானிகள்!",
+      "description": "ஆக்சிஜன் நிறைந்த கடல் மேல்மட்டத்தில் மீத்தேன் வாயு எவ்வாறு உருவாகிறது என்ற புதிருக்கு அமெரிக்காவின் ரோசெஸ்டர் பல்கலைக்கழக ஆராய்ச்சியாளர்கள் விடை கண்டுள்ளனர்.",
+      "image_url": "https://img-cdn.publive.online/fit-in/1200x675/indian-express-tamil/media/media_files/2026/07/14/methane-2026-07-14-14-24-47.jpg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "technology"
+      ],
+      "time_published": "2026-07-15T07:19:06+05:30",
+      "id": "333196e3998c",
+      "published": "24 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://tamil.indianexpress.com/international/this-country-people-dont-like-wearing-golddo-you-know-why-12163140",
+      "title": "என்னது தங்கம் போட்டா மதிக்க மாட்டாங்களா?  கோல்டை வெறுக்கும் பணக்கார நாடு; இங்க மறந்தும் கூட நகை போடாதீங்க",
+      "description": "தங்கம் என்பது நம் நாட்டில் பெரும் செல்வமாக கருதப்படும் நிலையில் உலகில் உள்ள பணக்கார நாட்டில் தங்கம் போட்டா மதிக்கமாட்டார்களாம். அது ஏன் என்பது குறித்து பார்க்கலாம்.",
+      "image_url": "https://img-cdn.publive.online/fit-in/1200x675/indian-express-tamil/media/media_files/2026/07/14/sweden-2026-07-14-15-59-47.jpg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "misc",
+        "world-news"
+      ],
+      "time_published": "2026-07-15T07:18:09+05:30",
+      "id": "13459223043b",
+      "published": "25 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://tamil.indianexpress.com/lifestyle/old-suitcase-home-decor-ideas-creative-ways-to-turn-vintage-luggage-into-stylish-furniture-and-home-decor-12163934",
+      "title": "பழைய சூட்கேஸை தூக்கி போடாதீங்க... வீட்டையே செம கிளாஸாக மாற்றலாம்!",
+      "description": "பயன்பாடின்றி கிடக்கும் பொருட்களை புதுமையான யோசனைகளுடன் மாற்றிப் பயன்படுத்துவது இன்று உலகம் முழுவதும் பிரபலமான வீட்டலங்கார டிரெண்டாக மாறியுள்ளது. ஒரு பழைய சூட்கேஸ் கூட உங்கள் வீட்டின் முக்கிய அலங்காரப் பொருளாக மாற முடியும்.  லைஃப்ஸ்டைல்.",
+      "image_url": "https://img-cdn.publive.online/fit-in/1200x675/indian-express-tamil/media/media_files/2026/07/14/5b745997-3062-43bd-81c1-bd354806f0ee-2026-07-14-19-42-59.jpg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "lifestyle"
+      ],
+      "time_published": "2026-07-15T07:17:16+05:30",
+      "id": "1e82712be799",
+      "published": "26 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/world-tamil-news/india-provides-financial-assistance-for-the-construction-of-a-monastery-in-nepal/4269859",
+      "title": "நேபாளத்தில் மடாலயம் கட்டுவததற்கு இந்தியா நிதியுதவி",
+      "description": "காத்மாண்டு: நேபாளத்தில் மடாலயம் கட்டுவதற்கு இந்தியா நிதியுதவி அளிப்பதாக அறிவித்துள்ளது. இந்த",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269859.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "indian",
+        "places",
+        "world-news"
+      ],
+      "time_published": "2026-07-15T07:17:00+05:30",
+      "id": "a3129b3bf8f6",
+      "published": "26 minutes ago",
+      "comments": 0
+    },
+    {
       "url": "https://www.hindutamil.in/news/tamilnadu/bodies-of-10-people-who-died-in-the-vietnam-boat-accident-have-arrived-in-chennai-and-coimbatore",
       "title": "வியட்நாம் படகு விபத்தில் உயிரிழந்த 10 பேரின் உடல்கள் சென்னை, கோவை வந்தன",
       "description": "சென்னை: ​வியட்நாம் படகு விபத்​தில் உயி​ரிழந்த தமிழகத்​தைச் சேர்ந்த 10 பேரின் உடல்​கள் விமானம் மூலம் சென்​னை, கோவை விமான நிலை​யங்​களுக்கு கொண்​டு​வரப்​பட்​டு, அர",
       "image_url": "https://cf-images.assettype.com/hindutamil-prod%2F2026-07-15%2Fnsqsqpiz%2F5.jpg?w=1200&ar=40%3A21&auto=format%2Ccompress&ogImage=true&mode=crop&enlarge=true&overlay=false&overlay_position=bottom&overlay_width=100",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -15,7 +270,7 @@
       ],
       "time_published": "2026-07-15T07:16:54.678000+05:30",
       "id": "1ede247a5921",
-      "published": "10 minutes ago",
+      "published": "26 minutes ago",
       "comments": 0
     },
     {
@@ -23,7 +278,7 @@
       "title": "கால்பந்து உலகக்கோப்பை அரையிறுதி| பிரான்ஸை 2-0 என வீழ்த்தி FINAL சென்றது ஸ்பெயின் அணி!",
       "description": "கால்பந்து உலகக்கோப்பையில் குறைவான கோல் விட்டுக்கொடுத்த அணிக்கும், அதிகமான கோலடித்த அணிக்கும் இடையேயான போட்டியில் யார் வெற்றிபெறுவார்கள் என்ற கேள்வி எழுப்பினால்",
       "image_url": "https://cf-images.assettype.com/puthiyathalaimurai%2F2026-07-15%2F7jik32pw%2FIndian-youngster-59.png?rect=0%2C15%2C800%2C420&w=1200&ar=40%3A21&auto=format%2Ccompress&ogImage=true&mode=crop&enlarge=true&overlay=false&overlay_position=bottom&overlay_width=100",
-      "dominant_color": "#0057c1",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -32,7 +287,7 @@
       ],
       "time_published": "2026-07-15T07:16:52.060000+05:30",
       "id": "c34d83a44fdb",
-      "published": "10 minutes ago",
+      "published": "26 minutes ago",
       "comments": 0
     },
     {
@@ -40,7 +295,7 @@
       "title": "2026 FIFA உலகக் கோப்பை அரையிறுதியில் பிரான்ஸை ஸ்பெயின் வீழ்த்தியது",
       "description": "செவ்வாய்க்கிழமை நடைபெற்ற அரையிறுதிப் போட்டியில் பிரான்ஸை 2-0 என்ற கோல் கணக்கில் வீழ்த்தியதன் மூலம், ஸ்பெயின் 2026 ஃபிஃபா உலகக் கோப்பையின் இறுதி போட்டிக்கு தகுதி பெற்றது",
       "image_url": "https://i.cdn.newsbytesapp.com/ta/images/l58920260715071628.jpeg",
-      "dominant_color": "#283b80",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -50,7 +305,42 @@
       ],
       "time_published": "2026-07-15T07:16:46+05:30",
       "id": "0d7660a490b0",
-      "published": "10 minutes ago",
+      "published": "26 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://tamil.indianexpress.com/tamilnadu/politics-weather-chennai-news-live-updates-in-tamil-12161408",
+      "title": "Chennai News Updates: ரூ.100 கோடி பழனி கோயில் நிலத்தை மீட்டு எடுப்போம்: அறநிலையத் துறை, பத்திரப்பதிவு துறை அமைச்சர்கள் உறுதி",
+      "description": "Tamil Nadu Latest Live News Updates: இன்றைய செய்திகள் அனைத்தையும் உடனுக்குடன் தெரிந்து கொள்ள தமிழ் இந்தியன் எக்ஸ்பிரஸின் இந்த இணைப்பில் இணைந்திருங்கள்!",
+      "image_url": "https://img-cdn.publive.online/fit-in/1200x675/indian-express-tamil/media/media_files/2025/02/10/oEo5r3lrQqgJnrAy3HIP.jpg",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "politics"
+      ],
+      "time_published": "2026-07-15T07:16:02+05:30",
+      "id": "cbdbec53cab3",
+      "published": "27 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/latest-tamil-news/power-plants-bridges-are-next-trump-warns-iran-of-bigger-strikes-unless-tehran-makes-deal/4269858",
+      "title": "ஈரான் மீது இன்னும் கடுமையான தாக்குதல்கள் நடத்தப்படும்; டிரம்ப்",
+      "description": "வாஷிங்டன்: ஈரானுடன் ஒப்பந்தம் மேற்கொள்ளாவிட்டால் இன்னும் பெரிய தாக்குதல்கள் நடத்தப்படும் என அதிபர்",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269858.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places"
+      ],
+      "time_published": "2026-07-15T07:15:00+05:30",
+      "id": "02cf520896d5",
+      "published": "28 minutes ago",
       "comments": 0
     },
     {
@@ -58,7 +348,7 @@
       "title": "கடற்கரை ரயில் நிலையத்தில் சிக்னல் பழுது; சேவை பாதிப்பால் 2 மணி நேரம் பயணியர் அவதி",
       "description": "சென்னை: சென்னை கடற்கரை ரயில் நிலையத்தில் சிக்னல் கோளாறால், இரண்டரை மணி நேரத்துக்கும் மேலாக மின்சார ரயில்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269857.jpg?im=Resize,width=1200",
-      "dominant_color": "#050505",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -70,7 +360,7 @@
       ],
       "time_published": "2026-07-15T07:11:00+05:30",
       "id": "82e191ce9082",
-      "published": "16 minutes ago",
+      "published": "32 minutes ago",
       "comments": 0
     },
     {
@@ -78,8 +368,8 @@
       "title": "நாளை பத்திரப்பதிவுக்கு கூடுதல் டோக்கன்",
       "description": "சென்னை: பத்திரப் பதிவுத்துறைத் தலைவர் நேற்று வெளியிட்ட செய்திக்குறிப்பில் கூறியிருப்பதாவது: ஆடி மாதம் தொடங்க இருப்பதால், ஜூலை 16-ம் தேதி வியாழக்கிழமை கூடுதலாக ம",
       "image_url": "https://cf-images.assettype.com/hindutamil-prod%2F2026-07-15%2Fy0xmw6a1%2F4.jpg?w=1200&ar=40%3A21&auto=format%2Ccompress&ogImage=true&mode=crop&enlarge=true&overlay=false&overlay_position=bottom&overlay_width=100",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -87,7 +377,7 @@
       ],
       "time_published": "2026-07-15T07:08:57.382000+05:30",
       "id": "1fc98b606ce0",
-      "published": "18 minutes ago",
+      "published": "34 minutes ago",
       "comments": 0
     },
     {
@@ -95,7 +385,7 @@
       "title": "முடிவை மாற்றினார் டிரம்ப்",
       "description": "ஹார்முஸ் ஜலசந்தி வழியாக செல்லும் சரக்கு கப்பல்களுக்கு, 20 சதவீதம் கட்டணம் விதிக்கும் முடிவை அமெரிக்க அதிபர்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269856.jpg?im=Resize,width=1200",
-      "dominant_color": "#272636",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -105,7 +395,7 @@
       ],
       "time_published": "2026-07-15T07:08:00+05:30",
       "id": "5d2a795d3d2c",
-      "published": "19 minutes ago",
+      "published": "35 minutes ago",
       "comments": 0
     },
     {
@@ -113,8 +403,8 @@
       "title": "ஊழலை ஒழிக்க விஜய் அரசு சபதம்",
       "description": "@quote@ மன்னார்குடி சட்டசபை தொகுதியில் 3 பணிகள், திருவாரூர் தொகுதியில் 2 பணிகள், நன்னிலம் தொகுதியில் 3 பணிகள்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269855.jpg?im=Resize,width=1200",
-      "dominant_color": "#fdfdfb",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -124,7 +414,7 @@
       ],
       "time_published": "2026-07-15T07:07:00+05:30",
       "id": "6a99b6063904",
-      "published": "20 minutes ago",
+      "published": "36 minutes ago",
       "comments": 0
     },
     {
@@ -132,8 +422,8 @@
       "title": "தமிழக அரசு திட்டத்துக்கு பா.ஜ., தமிழிசை வரவேற்பு",
       "description": "சென்னை: தமிழக அரசின் நலம் டி.என்., திட்டம் அரசு மருத்துவமனைகளை மேம்படுத்தும் என, தமிழக பா.ஜ., முன்னாள் தலைவர்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269854.jpg?im=Resize,width=1200",
-      "dominant_color": "#cecbb8",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -143,7 +433,7 @@
       ],
       "time_published": "2026-07-15T07:06:00+05:30",
       "id": "76fba0896716",
-      "published": "21 minutes ago",
+      "published": "37 minutes ago",
       "comments": 0
     },
     {
@@ -151,8 +441,8 @@
       "title": "தவெக அமைச்சர் செங்கோட்டையனுடன் அதிமுக பெண் எம்.எல்.ஏ., திடீர் சந்திப்பு",
       "description": "சென்னை: லால்குடி தொகுதி அ.தி.மு.க., - எம்.எல்.ஏ., லீமா ரோஸ், நேற்று த.வெ.க.,வை சேர்ந்த அமைச்சர் செங்கோட்டையனை, சென்னை",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269853.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -160,7 +450,7 @@
       ],
       "time_published": "2026-07-15T07:05:00+05:30",
       "id": "7b291f69969f",
-      "published": "22 minutes ago",
+      "published": "38 minutes ago",
       "comments": 0
     },
     {
@@ -168,8 +458,8 @@
       "title": "ரூ.100 கோடி பழநி கோயில் நிலம் மீட்டெடுக்கப்படும்: அறநிலையத்துறை, பத்திரப்பதிவு துறை அமைச்சர்கள் உறுதி",
       "description": "சென்னை: சார்பதிவாளரின் கவனக்குறைவால் பதிவுசெய்யப்பட்ட பழநி கோயிலுக்கு சொந்தமான ரூ.100 கோடி நிலம் மீட்டெடுக்கப்படும் என்று அமைச்சர்கள் தெரிவித்தனர். இதுகுறித்து",
       "image_url": "https://cf-images.assettype.com/hindutamil-prod%2F2026-07-15%2F3zkva1tr%2F3.jpg?w=1200&ar=40%3A21&auto=format%2Ccompress&ogImage=true&mode=crop&enlarge=true&overlay=false&overlay_position=bottom&overlay_width=100",
-      "dominant_color": "#b8d3e8",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -178,7 +468,7 @@
       ],
       "time_published": "2026-07-15T07:02:41.976000+05:30",
       "id": "0e6cf8f20a37",
-      "published": "24 minutes ago",
+      "published": "40 minutes ago",
       "comments": 0
     },
     {
@@ -186,7 +476,7 @@
       "title": "Today's Rashi Palan 15 July 2026: விவாதங்கள் அதிகரிக்கும், ஓய்வு எடுப்பது நல்லது - இன்றைய ராசிபலன்",
       "description": "Horoscope Today in Tamil 15 July 2026: இன்றைய ராசிபலன்களை நமது இந்தியன் எக்ஸ்பிரஸ் தமிழ் தளத்தில் படித்து தெரிந்துகொள்ளுங்கள்.",
       "image_url": "https://img-cdn.publive.online/fit-in/1200x675/indian-express-tamil/media/media_files/zpuTSnCfUAxfy2X6RPqW.jpg",
-      "dominant_color": "#1fab6a",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -196,7 +486,7 @@
       ],
       "time_published": "2026-07-15T07:01:43+05:30",
       "id": "8123ff74f000",
-      "published": "25 minutes ago",
+      "published": "41 minutes ago",
       "comments": 0
     },
     {
@@ -204,8 +494,8 @@
       "title": "பெண்கள் பாதுகாப்பை உறுதி செய்யணும்: பா.ஜ.,",
       "description": "சென்னை: தமிழக பா.ஜ., தலைவர் நயினார் நாகேந்திரன் அறிக்கை: கரூர் மாவட்டம் குளித்தலை அருகே, வேலைக்கு சென்று",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269852.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -215,7 +505,7 @@
       ],
       "time_published": "2026-07-15T07:01:00+05:30",
       "id": "8d358c0dedb6",
-      "published": "26 minutes ago",
+      "published": "42 minutes ago",
       "comments": 0
     },
     {
@@ -223,7 +513,7 @@
       "title": "முதல்வர் விஜய் தன் கட்சியினருக்கு சுய ஒழுக்க பாடம் எடுக்கணும்",
       "description": "சென்னை: கரூர் மாவட்டம், குளித்தலை, மலையப்பன் நகரைச் சேர்ந்த திருமணமான, 25 வயது பெண், தன் தோழியுடன் இரு சக்கர",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269851.jpg?im=Resize,width=1200",
-      "dominant_color": "#7b7575",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -234,7 +524,7 @@
       ],
       "time_published": "2026-07-15T07:01:00+05:30",
       "id": "6776df93545f",
-      "published": "26 minutes ago",
+      "published": "42 minutes ago",
       "comments": 0
     },
     {
@@ -242,8 +532,8 @@
       "title": "அதிமுக - திமுக கூட்டணி என கட்டுக்கதை அவிழ்த்து விட்டுள்ளனர்: பழனிசாமி ஆவேசம்",
       "description": "சேலம்: “அ.தி.மு.க., -தி.மு.க., கூட்டணி என, கட்டுக்கதையை அவிழ்த்து விட்டுள்ளனர்,” என, அ.தி.மு.க., பொதுச்செயலர்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269850.jpg?im=Resize,width=1200",
-      "dominant_color": "#949aa8",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -251,7 +541,7 @@
       ],
       "time_published": "2026-07-15T07:00:00+05:30",
       "id": "bf1f84e1be0b",
-      "published": "27 minutes ago",
+      "published": "43 minutes ago",
       "comments": 0
     },
     {
@@ -259,7 +549,7 @@
       "title": "கர்நாடக முதல்வர் மீது அவமதிப்பு வழக்கு தொடரணும்",
       "description": "@quote@ தமிழகத்தில் படிப்படியாக பூரண மதுவிலக்கை அமல்படுத்தினால், த.வெ.க., ஆட்சிக்கு நல்ல மதிப்பெண் வழங்கலாம்.",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269849.jpg?im=Resize,width=1200",
-      "dominant_color": "#315144",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -271,7 +561,7 @@
       ],
       "time_published": "2026-07-15T06:59:00+05:30",
       "id": "826e2aeae1ba",
-      "published": "28 minutes ago",
+      "published": "44 minutes ago",
       "comments": 0
     },
     {
@@ -279,8 +569,8 @@
       "title": "தி.மு.க., ஆட்சியில் ஏமாற்றமடைந்த 751 உதவி டாக்டர்களுக்கு பணி நியமனம்",
       "description": "சென்னை: தி.மு.க., ஆட்சியில் ஏமாற்றமடைந்த, 751 உதவி டாக்டர்களுக்கு, பணி நியமன ஆணையை, முதல்வர் விஜய் வழங்கினார்.",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269848.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -290,7 +580,7 @@
       ],
       "time_published": "2026-07-15T06:57:00+05:30",
       "id": "514feb08ecb3",
-      "published": "30 minutes ago",
+      "published": "46 minutes ago",
       "comments": 0
     },
     {
@@ -298,8 +588,8 @@
       "title": "அரசு வழக்கறிஞருக்கு கட்டண பாக்கி; 4 வாரங்களில் வழங்க அரசுக்கு கெடு",
       "description": "சென்னை: சேலம் பொறியியல் பட்டதாரி கோகுல்ராஜ் ஆணவ கொலை வழக்கில், அரசு சிறப்பு வழக்கறிஞராக பணிபுரிந்த, மூத்த",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269847.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -309,7 +599,7 @@
       ],
       "time_published": "2026-07-15T06:56:00+05:30",
       "id": "e2cea0fbd02a",
-      "published": "31 minutes ago",
+      "published": "47 minutes ago",
       "comments": 0
     },
     {
@@ -327,7 +617,7 @@
       ],
       "time_published": "2026-07-15T06:56:00+05:30",
       "id": "7b89c1442508",
-      "published": "31 minutes ago",
+      "published": "47 minutes ago",
       "comments": 0
     },
     {
@@ -335,8 +625,8 @@
       "title": "ரயில் நிலையங்களில் கஞ்சாவுக்கு எதிராக சோதனை",
       "description": "சென்னை: கஞ்சா உள்ளிட்ட போதைப் பொருள் கடத்தல் தொடர்பாக, மாநிலத்தில் உள்ள பல்வேறு ரயில் நிலையங்களில், மோப்ப",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269845.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -345,7 +635,7 @@
       ],
       "time_published": "2026-07-15T06:56:00+05:30",
       "id": "bcdb626e534b",
-      "published": "31 minutes ago",
+      "published": "47 minutes ago",
       "comments": 0
     },
     {
@@ -353,8 +643,8 @@
       "title": "ஒருங்கிணைந்த ஜவுளி பூங்கா; மத்திய அரசிடம் கோரிக்கை",
       "description": "சென்னை: தமிழகத்தில் ஜவுளி மற்றும் கைத்தறி துறையை மேம்படுத்த, மத்திய அரசின் நிதியுதவி மற்றும் திட்ட",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269844.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -363,7 +653,7 @@
       ],
       "time_published": "2026-07-15T06:55:00+05:30",
       "id": "d766634e6503",
-      "published": "32 minutes ago",
+      "published": "48 minutes ago",
       "comments": 0
     },
     {
@@ -371,8 +661,8 @@
       "title": "பத்திரப்பதிவுக்கு நாளை கூடுதல் டோக்கன்",
       "description": "சென்னை: பதிவுத்துறை தலைவர் அருண் சுந்தர் தயாளன் வெளியிட்ட அறிவிப்பு: முகூர்த்த நாட்கள் மற்றும் விசேஷ",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269843.jpg?im=Resize,width=1200",
-      "dominant_color": "#f8f3ef",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -381,7 +671,7 @@
       ],
       "time_published": "2026-07-15T06:55:00+05:30",
       "id": "cf5d45c9c987",
-      "published": "32 minutes ago",
+      "published": "48 minutes ago",
       "comments": 0
     },
     {
@@ -389,14 +679,14 @@
       "title": "தாய்லாந்து : மதுபான விடுதியில் தீ விபத்து - 30 பேர் உயிரிழப்பு! - News7 Tamil",
       "description": "தாய்லாந்தில் இரவு நேர மதுபான விடுதி ஒன்றில் ஏற்பட்ட தீ விபத்தில் 30 பேர் உயிரிழந்துள்ளனர்.",
       "image_url": "https://i0.wp.com/news7tamil.live/wp-content/uploads/2026/07/postcard-4-2026-07-15T065406.505.webp",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [],
       "time_published": "2026-07-15T06:54:22+05:30",
       "id": "9ff65a360326",
-      "published": "33 minutes ago",
+      "published": "49 minutes ago",
       "comments": 0
     },
     {
@@ -415,7 +705,7 @@
       ],
       "time_published": "2026-07-15T06:53:00+05:30",
       "id": "64b3c1826af1",
-      "published": "34 minutes ago",
+      "published": "50 minutes ago",
       "comments": 0
     },
     {
@@ -423,8 +713,8 @@
       "title": "தலைமை குற்றவியல் வழக்கறிஞர் நியமனம்",
       "description": "சென்னை: தமிழக அரசின் தலைமை குற்றவியல் வழக்கறிஞராக, மூத்த வழக்கறிஞர் ஆர்.ஜான் சத்யன் நியமனம்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269841.jpg?im=Resize,width=1200",
-      "dominant_color": "#3db0ff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -433,7 +723,7 @@
       ],
       "time_published": "2026-07-15T06:53:00+05:30",
       "id": "d579f86fe8a3",
-      "published": "34 minutes ago",
+      "published": "50 minutes ago",
       "comments": 0
     },
     {
@@ -441,8 +731,8 @@
       "title": "தங்க மோதிரம் வாங்க டெண்டர்",
       "description": "சென்னை: த.வெ.க., தேர்தல் வாக்குறுதியின்படி, அரசு மருத்துவமனைகளில் பிறக்கும் குழந்தைகளுக்கு, ஒரு கிராம் தங்க",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269840.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -451,7 +741,7 @@
       ],
       "time_published": "2026-07-15T06:52:00+05:30",
       "id": "3dfb7bc6c8e7",
-      "published": "35 minutes ago",
+      "published": "51 minutes ago",
       "comments": 0
     },
     {
@@ -459,7 +749,7 @@
       "title": "சிறுதானிய சாகுபடிக்கு தனி மவுசு",
       "description": "கரூர்: தமிழகத்தில் சிறுதானிய சாகுபடி பரப்பு அதிகரித்துள்ளது. தமிழகத்தில், அரிசி, கோதுமை மட்டுமே முக்கிய",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269839.jpg?im=Resize,width=1200",
-      "dominant_color": "#2b54b0",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -469,7 +759,7 @@
       ],
       "time_published": "2026-07-15T06:51:00+05:30",
       "id": "48a768a41215",
-      "published": "36 minutes ago",
+      "published": "52 minutes ago",
       "comments": 0
     },
     {
@@ -477,8 +767,8 @@
       "title": "அரசு மருத்துவமனைகளை மேம்படுத்த நலம் டி.என் அறக்கட்டளை தொடக்கம்: ஒரே நாளில் ரூ.3 கோடி நன்கொடை வசூல்",
       "description": "சென்னை: அரசு மருத்துவமனைகளில் உட்கட்டமைப்பை மேம்படுத்தும் வகையிலான, நலம் டி.என் அறக்கட்டளையை, முதல்வர்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269838.jpg?im=Resize,width=1200",
-      "dominant_color": "#fde8bd",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -487,7 +777,7 @@
       ],
       "time_published": "2026-07-15T06:50:00+05:30",
       "id": "32376e7c646f",
-      "published": "37 minutes ago",
+      "published": "53 minutes ago",
       "comments": 0
     },
     {
@@ -505,7 +795,7 @@
       ],
       "time_published": "2026-07-15T06:50:00+05:30",
       "id": "69eea80f14a0",
-      "published": "37 minutes ago",
+      "published": "53 minutes ago",
       "comments": 0
     },
     {
@@ -513,7 +803,7 @@
       "title": "இன்றைய ராசி பலன்கள் (15.7.2026) 12 ராசிகளுக்கும்! மகிழ்ச்சி யாருக்கு?",
       "description": "இன்றைய நாள் யாருக்கெல்லாம் அதிர்ஷ்டம் எனத் தெரிந்துகொள்வோம்.",
       "image_url": "https://media.dinamani.com/dinamani/import/2018/3/23/original/astrology.jpg",
-      "dominant_color": "#0a2cd0",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -522,7 +812,7 @@
       ],
       "time_published": "2026-07-15T06:50:00+05:30",
       "id": "d54d46ad792c",
-      "published": "37 minutes ago",
+      "published": "53 minutes ago",
       "comments": 0
     },
     {
@@ -530,8 +820,8 @@
       "title": "சதுப்பு நில காடுகளில் 16 வகை தாவரங்கள்: வனத்துறை நடவடிக்கை",
       "description": "சென்னை : தமிழகத்தில், சதுப்பு நில காடுகள் வளர்ப்பில், 16 வகை தாவரங்களுக்கு முக்கியத்துவம் அளிக்க, வனத்துறை",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269836.jpg?im=Resize,width=1200",
-      "dominant_color": "#dcf9f9",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -540,7 +830,7 @@
       ],
       "time_published": "2026-07-15T06:49:00+05:30",
       "id": "72c68dbc065d",
-      "published": "38 minutes ago",
+      "published": "54 minutes ago",
       "comments": 0
     },
     {
@@ -548,9 +838,9 @@
       "title": "இன்றைய ராசி பலன்கள் (ஜூலை 15) - விருச்சிக ராசிக்கு..!",
       "description": "இன்றைய நாள் யாருக்கெல்லாம் அதிர்ஷ்டத்தைத் தரும் எனத் தெரிந்துகொள்வோம்.  | daily predictions",
       "image_url": "https://media.dinamani.com/dinamani/2026-07-14/5wueonbj/dinapalan.jpeg",
-      "dominant_color": "#e7a100",
-      "text_color": "#000000",
-      "is_vertical": true,
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
       "lang": "ta",
       "categories": [
         "religion & spirituality",
@@ -558,7 +848,7 @@
       ],
       "time_published": "2026-07-15T06:49:00+05:30",
       "id": "d28c15362ccc",
-      "published": "38 minutes ago",
+      "published": "54 minutes ago",
       "comments": 0
     },
     {
@@ -576,7 +866,7 @@
       ],
       "time_published": "2026-07-15T06:48:00+05:30",
       "id": "73920eff9529",
-      "published": "39 minutes ago",
+      "published": "55 minutes ago",
       "comments": 0
     },
     {
@@ -584,8 +874,8 @@
       "title": "அம்பத்துார் ஐ.டி.ஐ.,யில் புதுமை முயற்சி மையம்",
       "description": "சென்னை : தமிழக அரசுக்கு சொந்தமாக, 132 ஐ.டி.ஐ., எனப்படும் தொழில் பயிற்சி நிலையங்களும், 272 தனியார் ஐ.டி.ஐ.,களும் உள்ளன.",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269834.jpg?im=Resize,width=1200",
-      "dominant_color": "#fdfffe",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -595,7 +885,7 @@
       ],
       "time_published": "2026-07-15T06:48:00+05:30",
       "id": "3605a5f7bc32",
-      "published": "39 minutes ago",
+      "published": "55 minutes ago",
       "comments": 0
     },
     {
@@ -603,8 +893,8 @@
       "title": "75 ரயில் நிலையங்கள் வரும் 17ல் திறப்பு",
       "description": "சென்னை : ரயில்வேயில், அம்ரித் பாரத் திட்டத்தின் கீழ், முதல் கட்டமாக, 508 ரயில் நிலையங்களை, 24,470 கோடி ரூபாயில்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269833.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -613,7 +903,7 @@
       ],
       "time_published": "2026-07-15T06:48:00+05:30",
       "id": "6a121e72c4fb",
-      "published": "39 minutes ago",
+      "published": "55 minutes ago",
       "comments": 0
     },
     {
@@ -621,8 +911,8 @@
       "title": "ஆன்லைனில் அபராதம்: ரயில்வே திட்டம்",
       "description": "சென்னை : விரைவு ரயில்களில், விதிகளை மீறுவோருக்கு விதிக்கப்படும் அபராதத் தொகையை, ஆன்லைன் வழியே வசூலிக்கும்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269832.jpg?im=Resize,width=1200",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -631,7 +921,7 @@
       ],
       "time_published": "2026-07-15T06:47:00+05:30",
       "id": "b14226dad59a",
-      "published": "40 minutes ago",
+      "published": "56 minutes ago",
       "comments": 0
     },
     {
@@ -639,7 +929,7 @@
       "title": "தங்கம் விலை சவரனுக்கு ரூ.400 குறைவு",
       "description": "சென்னை : தமிழகத்தில் நேற்று முன்தினம், 22 காரட் ஆபரண தங்கம் கிராம், 13,200 ரூபாய்க்கும், சவரன், 1,05,600 ரூபாய்க்கும்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269831.jpg?im=Resize,width=1200",
-      "dominant_color": "#fe0000",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -649,7 +939,7 @@
       ],
       "time_published": "2026-07-15T06:46:00+05:30",
       "id": "3c857aab8be5",
-      "published": "41 minutes ago",
+      "published": "57 minutes ago",
       "comments": 0
     },
     {
@@ -668,7 +958,7 @@
       ],
       "time_published": "2026-07-15T06:46:00+05:30",
       "id": "4cee5cac71da",
-      "published": "41 minutes ago",
+      "published": "57 minutes ago",
       "comments": 0
     },
     {
@@ -676,8 +966,8 @@
       "title": "கிரிண்டர் செயலியில் பழகி 8 பவுன் நகை பறிப்பு; 2 வாலிபர்கள் கைது",
       "description": "திருநெல்வேலி: திருநெல்வேலியில் தனியார் விடுதி ஊழியர், அவரது நண்பரிடம் கத்தி முனையில் 8 பவுன் நகைகளை பறித்த",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269829.jpg?im=Resize,width=1200",
-      "dominant_color": "#ebddb0",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -686,7 +976,7 @@
       ],
       "time_published": "2026-07-15T06:45:00+05:30",
       "id": "21895b37293a",
-      "published": "42 minutes ago",
+      "published": "58 minutes ago",
       "comments": 0
     },
     {
@@ -704,7 +994,7 @@
       ],
       "time_published": "2026-07-15T06:45:00+05:30",
       "id": "2cf3c3470b26",
-      "published": "42 minutes ago",
+      "published": "58 minutes ago",
       "comments": 0
     },
     {
@@ -722,7 +1012,7 @@
       ],
       "time_published": "2026-07-15T06:44:00+05:30",
       "id": "7c50c465a6b8",
-      "published": "43 minutes ago",
+      "published": "59 minutes ago",
       "comments": 0
     },
     {
@@ -730,7 +1020,7 @@
       "title": "மதுரையின் அவுட்டர் ரிங் ரோடு போக்குவரத்துக்கு இன்று திறப்பு",
       "description": "மதுரை: மதுரை - திண்டுக்கல் ரோட்டில், வாடிப்பட்டி முதல் மதுரை - மேலுார் ரோட்டில் சிட்டம்பட்டி, தாமரைப்பட்டி வரை",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269826.jpg?im=Resize,width=1200",
-      "dominant_color": "#4a413c",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -740,14 +1030,32 @@
       ],
       "time_published": "2026-07-15T06:44:00+05:30",
       "id": "13cad6a799e6",
-      "published": "43 minutes ago",
+      "published": "59 minutes ago",
+      "comments": 0
+    },
+    {
+      "url": "https://www.dinamalar.com/news/tamil-nadu-news/prisoner-under-investigation-dies-in-prison-three-arrested-including-chief-warden/4269827",
+      "title": "சிறையில் விசாரணை கைதி மரணம்; தலைமை வார்டன் உட்பட மூவர் கைது",
+      "description": "நாகர்கோவில்: குட்கா வழக்கில் கைதாகி நாகர்கோவில் சிறையில் அடைக்கப்பட்ட விசாரணை கைதி இறந்த சம்பவத்தில் சிறை",
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269827.jpg?im=Resize,width=1200",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
+      "lang": "ta",
+      "categories": [
+        "places",
+        "tamil nadu"
+      ],
+      "time_published": "2026-07-15T06:44:00+05:30",
+      "id": "5f524389f2bc",
+      "published": "59 minutes ago",
       "comments": 0
     },
     {
       "url": "https://www.dinamalar.com/news/tamil-nadu-district-news-krishnagiri/73-bangladeshis-arrested-for-illegally-staying-in-sri-lanka/4269825",
       "title": "சட்டவிரோதமாக தங்கியிருந்த வங்கதேசத்தினர் 73 பேர் கைது",
       "description": "ஓசூர்: கிருஷ்ணகிரி மாவட்டம், ஓசூர், நல்லுார் அக்ரஹாரம் பகுதியில், கியூ பிரிவு போலீசார் சோதனை நடத்தினர்.",
-      "image_url": null,
+      "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_426982520260715072949.jpg?im=Resize,width=1200",
       "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
@@ -759,7 +1067,7 @@
       ],
       "time_published": "2026-07-15T06:43:00+05:30",
       "id": "d13e68e1f72f",
-      "published": "44 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -767,8 +1075,8 @@
       "title": "காதலர்கள் தற்கொலை; கலெக்டர் ஆபீஸ் முற்றுகை",
       "description": "மயிலாடுதுறை: மயிலாடுதுறை மாவட்டம், சாத்தங்குடியில், 17 வயது சிறுமியும், 19 வயது வாலிபர் பார்த்திபனும் காதலித்த",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269824.jpg?im=Resize,width=1200",
-      "dominant_color": "#87bcf0",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -777,7 +1085,7 @@
       ],
       "time_published": "2026-07-15T06:43:00+05:30",
       "id": "66b1e2caef0e",
-      "published": "44 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -785,8 +1093,8 @@
       "title": "நீலகிரியில் அத்துமீறும் சுற்றுலா பயணியர்",
       "description": "கூடலுார்: முதுமலை, மாயார் பகுதிகளில் வன விலங்குகளுக்கு இடையூறு செய்ய கூடாது என்பதற்காக, கோர்ட் உத்தரவின்",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269823.jpg?im=Resize,width=1200",
-      "dominant_color": "#ececf8",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -795,7 +1103,7 @@
       ],
       "time_published": "2026-07-15T06:42:00+05:30",
       "id": "8476cf99dbd1",
-      "published": "45 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -813,7 +1121,7 @@
       ],
       "time_published": "2026-07-15T06:42:00+05:30",
       "id": "9da0c172392c",
-      "published": "45 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -832,7 +1140,7 @@
       ],
       "time_published": "2026-07-15T06:41:00+05:30",
       "id": "072c4b68f065",
-      "published": "46 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -840,8 +1148,8 @@
       "title": "திறக்கப்படாமல் அழியும் பூங்கா; ரூ.20 லட்சம் வரிப்பணம் வீண்",
       "description": "தஞ்சாவூர்: தஞ்சாவூர் பெரியகோவில் அருகே போலீஸ் துறைக்கு சொந்தமான, ஒன்றரை ஏக்கர் காலி நிலத்தில், பெரிய",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269820.jpg?im=Resize,width=1200",
-      "dominant_color": "#90bbdd",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -851,7 +1159,7 @@
       ],
       "time_published": "2026-07-15T06:41:00+05:30",
       "id": "842b4aa21149",
-      "published": "46 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -859,8 +1167,8 @@
       "title": "751 உதவி மருத்துவர்கள், 1,393 சுகாதார ஆய்வாளர்களுக்கு பணி நியமன ஆணைகளை முதல்வர் விஜய் வழங்கினார்",
       "description": "சென்னை: அரசு மருத்​து​வ​மனை​களின் மேம்​பாட்​டுக்கு நன்​கொடை பெறும் வகை​யில் ‘நலம் TN’ என்ற இணை​யதளத்தை தொடங்கி வைத்த முதல்​வர் விஜய், மருத்​துவ பணி​யாளர் தேர்வு",
       "image_url": "https://cf-images.assettype.com/hindutamil-prod%2F2026-07-15%2F54z1vz62%2F2.jpg?w=1200&ar=40%3A21&auto=format%2Ccompress&ogImage=true&mode=crop&enlarge=true&overlay=false&overlay_position=bottom&overlay_width=100",
-      "dominant_color": "#ffffff",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -870,7 +1178,7 @@
       ],
       "time_published": "2026-07-15T06:40:33.332000+05:30",
       "id": "318bc1e7565e",
-      "published": "46 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -878,7 +1186,7 @@
       "title": "பள்ளியில் தேனீக்கள் கடித்து 50 மாணவர்கள் பாதிப்பு",
       "description": "சிறுபாக்கம்: கடலுார் மாவட்டம், சிறுபாக்கம் அடுத்த மங்களூர் அரசு மேல்நிலைப்பள்ளி வளாகத்திலுள்ள வேப்ப",
       "image_url": "https://images.dinamalar.com/data/large_2025/Tamil_News_lrg_4269819.jpg?im=Resize,width=1200",
-      "dominant_color": "#7d8222",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -888,7 +1196,7 @@
       ],
       "time_published": "2026-07-15T06:40:00+05:30",
       "id": "44b79061368d",
-      "published": "47 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -908,7 +1216,7 @@
       ],
       "time_published": "2026-07-15T06:39:00+05:30",
       "id": "d864d4847fad",
-      "published": "48 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -926,7 +1234,7 @@
       ],
       "time_published": "2026-07-15T06:39:00+05:30",
       "id": "1f1f7f131252",
-      "published": "48 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -944,7 +1252,7 @@
       ],
       "time_published": "2026-07-15T06:39:00+05:30",
       "id": "9876cd937cd7",
-      "published": "48 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -962,7 +1270,7 @@
       ],
       "time_published": "2026-07-15T06:38:00+05:30",
       "id": "27479f24697f",
-      "published": "49 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -980,7 +1288,7 @@
       ],
       "time_published": "2026-07-15T06:38:00+05:30",
       "id": "8cb6b75a0a9f",
-      "published": "49 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -999,7 +1307,7 @@
       ],
       "time_published": "2026-07-15T06:38:00+05:30",
       "id": "33c02ae0694c",
-      "published": "49 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1017,7 +1325,7 @@
       ],
       "time_published": "2026-07-15T06:37:00+05:30",
       "id": "f45e60b4e6c9",
-      "published": "50 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1036,7 +1344,7 @@
       ],
       "time_published": "2026-07-15T06:37:00+05:30",
       "id": "d35bfb04305c",
-      "published": "50 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1054,7 +1362,7 @@
       ],
       "time_published": "2026-07-15T06:36:00+05:30",
       "id": "aee960520b52",
-      "published": "51 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1072,7 +1380,7 @@
       ],
       "time_published": "2026-07-15T06:36:00+05:30",
       "id": "d690bef40f84",
-      "published": "51 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1091,7 +1399,7 @@
       ],
       "time_published": "2026-07-15T06:36:00+05:30",
       "id": "015743855a86",
-      "published": "51 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1099,14 +1407,14 @@
       "title": "முதல் ஒருநாள் போட்டி - இங்கிலாந்து அணியை வீழ்த்தி இந்தியா அபார வெற்றி! - News7 Tamil",
       "description": "இந்திய அணி 45.2 ஓவர்களில் 4 விக்கெட் இழப்புக்கு 262 ரன்கள் எடுத்து 6 விக்கெட் வித்தியாசத்தில் அபார வெற்றி பெற்றது.",
       "image_url": "https://i0.wp.com/news7tamil.live/wp-content/uploads/2026/07/postcard-4-2026-07-15T062932.150.webp",
-      "dominant_color": "#03cdfa",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [],
       "time_published": "2026-07-15T06:29:42+05:30",
       "id": "b906a4ca6370",
-      "published": "57 minutes ago",
+      "published": "1 hours ago",
       "comments": 0
     },
     {
@@ -1114,8 +1422,8 @@
       "title": "கேரளம்: பாஜக கவுன்சிலருக்கு சிறையில் பதவிப் பிரமாணம்",
       "description": "கேரளத்தில் தடுப்புக் காவலில் வைக்கப்பட்டுள்ள பாஜக கவுன்சிலா் உயா் நீதிமன்ற அனுமதியுடன் சிறையில் இருந்தபடியே பதவியேற்றுக் கொண்டாா்.",
       "image_url": "https://media.dinamani.com/dinamani/2026-07-14/yyi0rxto/Kerala-High-Court",
-      "dominant_color": "#c0b5b3",
-      "text_color": "#000000",
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
       "categories": [
@@ -1134,9 +1442,9 @@
       "title": "சா்வதேச விண்வெளி நிலையத்துக்கு அனில் மேனன் பயணம்!",
       "description": "நாசா விண்வெளி வீரரும், இந்திய வம்சாவளியைச் சோ்ந்தவருமான அனில் மேனன், ரஷிய விண்வெளி வீரா் மற்றும் வீராங்கனையுடன் சா்வதேச விண்வெளி நிலையத்துக்கு புறப்பட்டாா்.",
       "image_url": "https://media.dinamani.com/dinamani/2026-07-14/22ye1cay/anil_menon102938.jpg",
-      "dominant_color": "#94aea1",
-      "text_color": "#000000",
-      "is_vertical": true,
+      "dominant_color": "#444444",
+      "text_color": "#FFFFFF",
+      "is_vertical": false,
       "lang": "ta",
       "categories": [
         "indian"
@@ -1151,7 +1459,7 @@
       "title": "மெல்லிசையின் ராஜகுமாரி!",
       "description": "தமிழ்நாடோ, கர்நாடகமோ, கேரளமோ எதுவானாலும் ஜானகி அம்மாவை சொந்தம் கொண்டாடித் தீர்க்கிறதே, இந்த அதிசயத்தை என்னவென்று சொல்ல?",
       "image_url": "https://media.dinamani.com/dinamani/2026-07-11/xpacb08s/HM9OGmcaMAAdXFH.jfif",
-      "dominant_color": "#353535",
+      "dominant_color": "#444444",
       "text_color": "#FFFFFF",
       "is_vertical": false,
       "lang": "ta",
@@ -1250,5 +1558,5 @@
       "comments": 0
     }
   ],
-  "ts": "2026-07-15T01:57:26.278977+00:00"
+  "ts": "2026-07-15T02:13:38.390805+00:00"
 }

@@ -39,7 +39,7 @@ jobs:
           MAX_PER_SITEMAP: "50"
           MAX_PER_FEED: "500"
           RETENTION_DAYS: "7"
-          ENABLE_IMAGE_ANALYSIS: "1"
+          MAX_WORKERS: "16"
         run: python scripts/fetch_feeds.py
 
       - name: Commit & push updated feeds

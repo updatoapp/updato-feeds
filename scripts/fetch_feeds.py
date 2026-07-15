@@ -6,9 +6,8 @@ Pipeline (no database, no Redis):
   1. Load the list of publisher sitemaps from a Google Sheet
      (falls back to the committed ``sitemap_backup.csv``).
   2. For each sitemap, pull articles published within the recent window.
-  3. Scrape OpenGraph metadata (title / description / image) for each article,
-     tag categories/places from the URL, and (optionally) derive the image's
-     dominant colour + orientation.
+  3. Scrape OpenGraph metadata (title / description / image) for each article
+     and tag categories/places from the URL.
   4. Merge with the previously committed ``feeds/feed_<lang>.json`` files,
      dedupe by URL, drop stale entries, and write the feeds back.
 
@@ -23,9 +22,8 @@ import hashlib
 import json
 import os
 import re
-from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
@@ -34,17 +32,6 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
-
-try:  # Pillow is optional; without it we simply skip colour/orientation.
-    from PIL import Image
-
-    try:
-        import pillow_avif  # noqa: F401  (registers the AVIF decoder)
-    except Exception:
-        pass
-    _PIL_OK = True
-except Exception:  # pragma: no cover
-    _PIL_OK = False
 
 import sys
 
@@ -65,9 +52,9 @@ RECENT_MINUTES = int(os.getenv("RECENT_MINUTES", "90"))
 MAX_PER_SITEMAP = int(os.getenv("MAX_PER_SITEMAP", "50"))
 RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "7"))
 MAX_PER_FEED = int(os.getenv("MAX_PER_FEED", "500"))
-# Downloading every image to compute colours is slow; toggle off to speed up CI.
-ENABLE_IMAGE_ANALYSIS = os.getenv("ENABLE_IMAGE_ANALYSIS", "1") == "1"
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
+# Parallelism for network-bound sitemap + article fetching.
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "16"))
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; UpdatoFeedBot/1.0; +https://updato.app)"}
 
@@ -100,8 +87,9 @@ PLACE_ABBREVIATIONS = {
 }
 
 # Populated once by build_category_index().
-PLACE_ALIAS_MAP: dict[str, str] = {}
-CATEGORY_KEYWORDS: dict[str, list[str]] = {}
+PLACE_ALIAS_MAP: dict[str, str] = {}             # phrase -> full place name
+KEYWORD_TO_CATEGORIES: dict[str, set[str]] = {}  # phrase -> {category names}
+MAX_NGRAM = 1                                     # longest alias/keyword (words)
 
 
 # --------------------------------------------------------------------------- #
@@ -120,8 +108,15 @@ def _load_csv_with_fallback(url: str, local_path: Path) -> pd.DataFrame:
 
 
 def build_category_index() -> None:
-    """Populate PLACE_ALIAS_MAP and CATEGORY_KEYWORDS from CSV sources."""
-    global PLACE_ALIAS_MAP, CATEGORY_KEYWORDS
+    """Build fast lookup tables for place/category tagging.
+
+    Instead of regex-testing every URL against ~10k aliases (the old slow path),
+    all aliases and keywords are indexed into dicts keyed by the exact phrase.
+    Tagging then only checks the word n-grams of each URL segment against these
+    dicts -- a handful of hash lookups per article instead of tens of thousands
+    of regex operations.
+    """
+    global PLACE_ALIAS_MAP, KEYWORD_TO_CATEGORIES, MAX_NGRAM
 
     try:
         location_df = pd.read_csv(LOCATION_CSV)
@@ -141,11 +136,21 @@ def build_category_index() -> None:
                     alias_map[abbr] = name
     PLACE_ALIAS_MAP = alias_map
 
-    CATEGORY_KEYWORDS = {
-        col.strip().lower(): keyword_df[col].dropna().astype(str).str.strip().str.lower().tolist()
-        for col in keyword_df.columns
-    }
-    print(f"[ok] categories={len(CATEGORY_KEYWORDS)} place_aliases={len(PLACE_ALIAS_MAP)}")
+    kw_to_cat: dict[str, set[str]] = {}
+    for col in keyword_df.columns:
+        cat = col.strip().lower()
+        for kw in keyword_df[col].dropna().astype(str).str.strip().str.lower():
+            if kw:
+                kw_to_cat.setdefault(kw, set()).add(cat)
+    KEYWORD_TO_CATEGORIES = kw_to_cat
+
+    # Longest phrase (in words) we must consider when scanning URL segments.
+    phrases = list(PLACE_ALIAS_MAP.keys()) + list(KEYWORD_TO_CATEGORIES.keys())
+    MAX_NGRAM = max((len(p.split()) for p in phrases), default=1)
+
+    n_cats = len({c for cats in kw_to_cat.values() for c in cats})
+    print(f"[ok] categories={n_cats} place_aliases={len(PLACE_ALIAS_MAP)} "
+          f"keywords={len(KEYWORD_TO_CATEGORIES)} max_ngram={MAX_NGRAM}")
 
 
 def extract_categories_from_url(url: str) -> list[str]:
@@ -164,29 +169,24 @@ def extract_categories_from_url(url: str) -> list[str]:
             if re.search(r"\.(cms|html|htm)$", s):
                 continue
 
-            normalized = s.replace("-", " ").strip()
+            tokens = s.replace("-", " ").split()
+            if not tokens:
+                continue
+
             matched = False
-
-            for alias, full_name in PLACE_ALIAS_MAP.items():
-                try:
-                    if re.search(rf"\b{re.escape(alias)}\b", normalized):
+            max_n = min(MAX_NGRAM, len(tokens))
+            for n in range(1, max_n + 1):
+                for i in range(len(tokens) - n + 1):
+                    phrase = " ".join(tokens[i:i + n])
+                    place = PLACE_ALIAS_MAP.get(phrase)
+                    if place:
                         categories.add("places")
-                        categories.add(full_name)
+                        categories.add(place)
                         matched = True
-                        break
-                except re.error:
-                    continue
-
-            for cat, keywords in CATEGORY_KEYWORDS.items():
-                for k in keywords:
-                    if not k or not isinstance(k, str):
-                        continue
-                    try:
-                        if re.search(rf"\b{re.escape(k)}\b", normalized):
-                            categories.add(cat)
-                            matched = True
-                    except re.error:
-                        continue
+                    cats = KEYWORD_TO_CATEGORIES.get(phrase)
+                    if cats:
+                        categories.update(cats)
+                        matched = True
 
             if not matched:
                 fallback.append(s)
@@ -200,31 +200,10 @@ def extract_categories_from_url(url: str) -> list[str]:
 
 
 # --------------------------------------------------------------------------- #
-# Image analysis (single download -> colour + orientation)
+# Static image defaults (per-image downloading/analysis was removed for speed)
 # --------------------------------------------------------------------------- #
-def _contrasting_text_color(hex_color: str) -> str:
-    h = hex_color.lstrip("#")
-    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
-    luminance = 0.299 * r + 0.587 * g + 0.114 * b
-    return "#FFFFFF" if luminance < 128 else "#000000"
-
-
-def analyze_image(url: str | None) -> tuple[str, str, bool]:
-    dominant = "#444444"
-    is_vertical = False
-    if not url or not ENABLE_IMAGE_ANALYSIS or not _PIL_OK:
-        return dominant, _contrasting_text_color(dominant), is_vertical
-    try:
-        res = requests.get(url, timeout=8, headers=HEADERS)
-        res.raise_for_status()
-        img = Image.open(BytesIO(res.content))
-        is_vertical = img.height > img.width
-        small = img.convert("RGB").resize((64, 64))
-        most_common = Counter(small.getdata()).most_common(1)[0][0]
-        dominant = "#{:02x}{:02x}{:02x}".format(*most_common)
-    except Exception as exc:
-        print(f"[warn] image analyze failed for {url}: {exc}")
-    return dominant, _contrasting_text_color(dominant), is_vertical
+DEFAULT_DOMINANT_COLOR = "#444444"
+DEFAULT_TEXT_COLOR = "#FFFFFF"  # readable on the dark default background
 
 
 # --------------------------------------------------------------------------- #
@@ -330,7 +309,6 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         description = og("og:description") or ""
         image_url = og("og:image") or entry.get("image") or None
 
-        dominant, text_color, is_vertical = analyze_image(image_url)
         pub_time = entry["published_time"]
         time_published = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
 
@@ -339,9 +317,9 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
             "title": title,
             "description": description,
             "image_url": image_url,
-            "dominant_color": dominant,
-            "text_color": text_color,
-            "is_vertical": is_vertical,
+            "dominant_color": DEFAULT_DOMINANT_COLOR,
+            "text_color": DEFAULT_TEXT_COLOR,
+            "is_vertical": False,
             "lang": lang,
             "categories": extract_categories_from_url(url),
             "time_published": time_published,
@@ -432,21 +410,44 @@ def main() -> None:
         print("[error] nothing to do: no sitemaps")
         return
 
-    by_lang: dict[str, list[dict]] = {}
+    sources: list[tuple[str, str]] = []
     for source in sitemaps:
         sitemap_url = str(source.get("url", "")).strip()
         lang = str(source.get("lang", "")).strip() or "unknown"
-        if not sitemap_url or sitemap_url.lower() == "nan":
-            continue
+        if sitemap_url and sitemap_url.lower() != "nan":
+            sources.append((sitemap_url, lang))
 
-        entries = fetch_articles_from_sitemap(sitemap_url)
-        print(f"[..] {sitemap_url} -> {len(entries)} recent (lang={lang})")
+    # 1) Fetch all sitemaps in parallel -> flat list of (entry, lang) to scrape.
+    tasks: list[tuple[dict, str]] = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        futures = {pool.submit(fetch_articles_from_sitemap, url): (url, lang)
+                   for url, lang in sources}
+        for fut in as_completed(futures):
+            url, lang = futures[fut]
+            try:
+                entries = fut.result()
+            except Exception as exc:
+                print(f"[warn] sitemap failed {url}: {exc}")
+                entries = []
+            print(f"[..] {url} -> {len(entries)} recent (lang={lang})")
+            tasks.extend((entry, lang) for entry in entries)
 
-        for i, entry in enumerate(entries, 1):
-            article = scrape_article(entry, lang)
+    # 2) Scrape all articles in parallel (this is the network-heavy part).
+    print(f"[..] scraping {len(tasks)} articles with {MAX_WORKERS} workers")
+    by_lang: dict[str, list[dict]] = {}
+    done = 0
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        futures = [pool.submit(scrape_article, entry, lang) for entry, lang in tasks]
+        for fut in as_completed(futures):
+            done += 1
+            try:
+                article = fut.result()
+            except Exception:
+                article = None
             if article and is_acceptable(article):
-                by_lang.setdefault(lang, []).append(article)
-            print(f"    [{i}/{len(entries)}] {entry['url']}")
+                by_lang.setdefault(article["lang"], []).append(article)
+            if done % 50 == 0 or done == len(tasks):
+                print(f"    scraped {done}/{len(tasks)}")
 
     if not by_lang:
         print("[done] no new acceptable articles this run")

@@ -8,8 +8,9 @@ Pipeline (no database, no Redis):
   2. For each sitemap, pull articles published within the recent window.
   3. Scrape OpenGraph metadata (title / description / image) for each article
      and tag categories/places from the URL.
-  4. Merge with the previously committed ``feeds/feed_<lang>.json`` files,
-     dedupe by URL, drop stale entries, and write the feeds back.
+  4. Merge with the previously committed ``feeds/feed_<lang>.json.gz`` files,
+     dedupe by URL, drop stale entries, and write the gzipped feeds back
+     (CDN-ready for GitHub Pages; the app fetches and gunzips them directly).
 
 The committed feed files ARE the state, so consecutive hourly runs accumulate
 articles instead of losing them. Everything is configurable via env vars so the
@@ -18,6 +19,7 @@ same script works locally and in CI.
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 import os
@@ -310,7 +312,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         image_url = og("og:image") or entry.get("image") or None
 
         pub_time = entry["published_time"]
-        time_published = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
+        raw_time = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
 
         return {
             "url": url,
@@ -322,7 +324,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
             "is_vertical": False,
             "lang": lang,
             "categories": extract_categories_from_url(url),
-            "time_published": time_published,
+            "raw_time": raw_time,
         }
     except Exception as exc:
         print(f"[warn] scrape failed for {url}: {exc}")
@@ -362,11 +364,12 @@ def _relative_time(ts: str) -> str:
 
 
 def load_existing_feed(lang: str) -> list[dict]:
-    path = FEEDS_DIR / f"feed_{lang}.json"
+    path = FEEDS_DIR / f"feed_{lang}.json.gz"
     if not path.exists():
         return []
     try:
-        return json.loads(path.read_text(encoding="utf-8")).get("feed", [])
+        raw = gzip.decompress(path.read_bytes())
+        return json.loads(raw.decode("utf-8")).get("feed", [])
     except Exception as exc:
         print(f"[warn] could not read {path.name}: {exc}")
         return []
@@ -382,20 +385,25 @@ def write_feed(lang: str, articles: list[dict]) -> int:
             continue
         merged[url] = {**merged.get(url, {}), **art}  # newer scrape wins
 
-    kept = [a for a in merged.values() if _parse_ist(a.get("time_published", "")) >= cutoff]
-    kept.sort(key=lambda a: _parse_ist(a.get("time_published", "")), reverse=True)
+    kept = [a for a in merged.values() if _parse_ist(a.get("raw_time", "")) >= cutoff]
+    kept.sort(key=lambda a: _parse_ist(a.get("raw_time", "")), reverse=True)
     kept = kept[:MAX_PER_FEED]
 
     for a in kept:
         a["id"] = hashlib.md5(a["url"].encode("utf-8")).hexdigest()[:12]
-        a["published"] = _relative_time(a.get("time_published", ""))
+        a["published"] = _relative_time(a.get("raw_time", ""))
         a.setdefault("comments", 0)
 
     FEEDS_DIR.mkdir(parents=True, exist_ok=True)
     payload = {"feed": kept, "ts": datetime.now(timezone.utc).isoformat()}
-    (FEEDS_DIR / f"feed_{lang}.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    gz = gzip.compress(raw, compresslevel=9, mtime=0)
+    (FEEDS_DIR / f"feed_{lang}.json.gz").write_bytes(gz)
+
+    # Remove any legacy uncompressed feed so the CDN only serves .json.gz.
+    legacy = FEEDS_DIR / f"feed_{lang}.json"
+    if legacy.exists():
+        legacy.unlink()
     return len(kept)
 
 
@@ -452,8 +460,8 @@ def main() -> None:
     if not by_lang:
         print("[done] no new acceptable articles this run")
         # Still rewrite existing feeds so relative timestamps stay fresh.
-        for path in FEEDS_DIR.glob("feed_*.json"):
-            lang = path.stem.replace("feed_", "")
+        for path in FEEDS_DIR.glob("feed_*.json.gz"):
+            lang = path.name[len("feed_"):-len(".json.gz")]
             write_feed(lang, [])
         return
 

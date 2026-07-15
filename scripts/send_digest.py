@@ -29,8 +29,10 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 import requests
 from google.auth.transport.requests import Request
@@ -49,6 +51,33 @@ SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE", "service_account.json")
 
 FCM_SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"]
 REQUEST_TIMEOUT = 15
+
+
+def _env_int(name: str, default: int) -> int:
+    v = os.getenv(name, "").strip()
+    return int(v) if v else default
+
+
+def _env_float(name: str, default: float) -> float:
+    v = os.getenv(name, "").strip()
+    return float(v) if v else default
+
+
+# --- Importance ranking (URL-based; no API key, no NLP on native scripts) --- #
+# The trending signal is CROSS-SOURCE CORROBORATION: a story many publishers
+# run at once is important. "Same story" is detected from URL slug tokens
+# (English/romanized even on Hindi/Tamil sites), which is far more reliable
+# than fuzzy-matching native-script headlines. All knobs are env-overridable.
+RANKING = os.getenv("RANKING", "").strip().lower() not in ("0", "false", "no")
+RANK_WINDOW_HOURS = _env_float("RANK_WINDOW_HOURS", 24.0)
+SIM_THRESHOLD = _env_float("SIM_THRESHOLD", 0.5)   # URL-token overlap coefficient
+MIN_SHARED = _env_int("MIN_SHARED", 2)             # min shared URL tokens to merge
+MIN_SOURCES = _env_int("MIN_SOURCES", 1)           # min publishers per story
+W_CORROB = _env_float("W_CORROB", 2.0)
+W_SOURCE = _env_float("W_SOURCE", 1.5)
+W_CATEGORY = _env_float("W_CATEGORY", 1.0)
+W_RECENCY = _env_float("W_RECENCY", 0.8)
+W_IMAGE = _env_float("W_IMAGE", 0.3)
 
 # Localized notification titles per time-of-day slot.
 SLOT_TITLES: dict[str, dict[str, str]] = {
@@ -121,7 +150,7 @@ def load_credentials() -> service_account.Credentials:
     )
 
 
-def fetch_top_articles(lang: str, n: int) -> list[dict]:
+def fetch_feed(lang: str) -> list[dict]:
     url = f"{FEED_BASE_URL}/feed_{lang}.json.gz"
     resp = requests.get(url, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
@@ -130,8 +159,7 @@ def fetch_top_articles(lang: str, n: int) -> list[dict]:
     except OSError:
         raw = resp.content  # already decompressed by the client
     data = json.loads(raw.decode("utf-8"))
-    articles = data.get("feed", []) if isinstance(data, dict) else data
-    return articles[:n]
+    return data.get("feed", []) if isinstance(data, dict) else data
 
 
 def build_body(articles: list[dict]) -> str:
@@ -149,6 +177,225 @@ def first_image(articles: list[dict]) -> str | None:
         if img.startswith("http"):
             return img
     return None
+
+
+# --------------------------------------------------------------------------- #
+# Importance ranking
+# --------------------------------------------------------------------------- #
+# Language subdomains collapsed so bangla.aajtak.in and aajtak.in count as one
+# publisher (for corroboration) and share a reputation weight.
+LANG_SUBDOMAINS = {
+    "hindi", "english", "bangla", "bengali", "tamil", "telugu", "kannada",
+    "malayalam", "hin", "tam", "tel", "kan", "ben", "mal", "eng", "mr", "guj",
+}
+
+DEFAULT_SOURCE_WEIGHT = 0.6
+HIGH_REPUTATION = {
+    "moneycontrol.com", "livemint.com", "ndtvprofit.com", "indiatoday.in",
+    "hindustantimes.com", "indianexpress.com", "newindianexpress.com",
+    "timesnownews.com", "tribuneindia.com", "businesstoday.in", "cnbctv18.com",
+    "economictimes.com", "news18.com", "aajtak.in", "zeenews.india.com",
+    "jagran.com", "eenadu.net", "andhrajyothy.com", "vijaykarnataka.com",
+    "dinamalar.com", "dinamani.com", "madhyamam.com", "thelallantop.com",
+    "downtoearth.org.in", "indiatimes.com", "navbharattimes.indiatimes.com",
+    "samayam.com", "news9live.com", "abplive.com", "india.com",
+}
+LOW_REPUTATION = {
+    "koimoi.com", "pinkvilla.com", "bollywoodhungama.com", "mayapuri.com",
+    "herzindagi.com", "samacharnama.com", "lalluram.com", "icifmede.com",
+    "bhadas4media.com", "sachkahoon.com", "ekhabartoday.com",
+    "keralaonlinenews.com", "sathyamonline.com", "vishwavani.news",
+    "news7tamil.live", "people.com",
+}
+
+CATEGORY_WEIGHTS = {
+    "national": 1.0, "nation": 1.0, "india": 1.0, "politics": 1.0,
+    "world": 1.0, "international": 1.0, "defence": 0.9, "defense": 0.9,
+    "business": 0.9, "economy": 0.9, "finance": 0.9, "market": 0.9, "markets": 0.9,
+    "science": 0.85, "health": 0.85,
+    "technology": 0.75, "tech": 0.75, "education": 0.75,
+    "sports": 0.6, "sport": 0.6, "cricket": 0.6,
+    "auto": 0.5,
+    "entertainment": 0.4, "bollywood": 0.4, "movies": 0.4,
+    "lifestyle": 0.3, "viral": 0.3, "trending": 0.3,
+    "astrology": 0.15, "horoscope": 0.15,
+    "webstories": 0.1, "photos": 0.15, "gallery": 0.15, "videos": 0.2,
+}
+DEFAULT_CATEGORY_WEIGHT = 0.55  # untagged / place-only (local) news
+
+# Structural / section words that must not drive story matching. Distinctive
+# entity tokens (names, places, events) do the clustering instead.
+URL_STOPWORDS = {
+    "news", "story", "stories", "article", "articleshow", "videoshow",
+    "photoshow", "live", "liveblog", "video", "videos", "photo", "photos",
+    "gallery", "web", "webstory", "webstories", "visualstories", "slideshow",
+    "amp", "html", "htm", "cms", "www", "com", "latest", "breaking", "update",
+    "updates", "watch", "read", "big", "exclusive", "detail", "details",
+    "content", "index", "home", "google", "sitemap", "feed", "rss", "post",
+    "the", "and", "for", "with", "from", "this", "that", "into", "over",
+    "after", "before", "amid", "will", "says", "said", "why", "how", "what",
+    "when", "who", "top", "new", "get", "you", "your", "his", "her", "are",
+    "world", "india", "national", "international", "state", "states", "city",
+    "sports", "sport", "business", "entertainment", "tech", "technology",
+    "lifestyle", "health", "education", "auto", "astrology", "viral",
+    "trending", "bollywood", "movies", "cricket", "nation", "regional",
+}
+
+WEBSTORY_URL_MARKERS = (
+    "web-stories", "webstory", "webstories", "visualstories", "photo-story",
+    "slideshow", "/photos/", "/gallery/", "/videos/",
+)
+
+
+def _publisher(url: str) -> str:
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        return ""
+    if host.startswith("www."):
+        host = host[4:]
+    parts = host.split(".")
+    if parts and parts[0] in LANG_SUBDOMAINS:
+        parts = parts[1:]
+    return ".".join(parts)
+
+
+def _source_weight(url: str) -> float:
+    pub = _publisher(url)
+    if pub in HIGH_REPUTATION:
+        return 1.0
+    if pub in LOW_REPUTATION:
+        return 0.25
+    return DEFAULT_SOURCE_WEIGHT
+
+
+def _url_tokens(url: str) -> set[str]:
+    try:
+        path = urlparse(url).path.lower()
+    except Exception:
+        return set()
+    tokens: set[str] = set()
+    for seg in path.split("/"):
+        seg = re.sub(r"\.(cms|html?|amp)$", "", seg)
+        if not seg or seg.replace("-", "").replace("_", "").isnumeric():
+            continue
+        for tok in re.split(r"[-_]", seg):
+            if len(tok) < 3 or not tok.isalpha() or tok in URL_STOPWORDS:
+                continue
+            tokens.add(tok)
+    return tokens
+
+
+def _is_webstory(article: dict) -> bool:
+    cats = article.get("categories") or []
+    if isinstance(cats, list) and any(str(c).lower() == "webstories" for c in cats):
+        return True
+    url = (article.get("url") or "").lower()
+    return any(m in url for m in WEBSTORY_URL_MARKERS)
+
+
+def _category_weight(article: dict) -> float:
+    cats = article.get("categories") or []
+    if isinstance(cats, str):
+        cats = [cats]
+    weights = [CATEGORY_WEIGHTS[c.lower()] for c in cats if str(c).lower() in CATEGORY_WEIGHTS]
+    return max(weights) if weights else DEFAULT_CATEGORY_WEIGHT
+
+
+def _age_hours(article: dict) -> float:
+    ts = str(article.get("raw_time", "")).strip()
+    if not ts:
+        return 1e9
+    try:
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=IST)
+    except Exception:
+        return 1e9
+    return (datetime.now(IST) - dt).total_seconds() / 3600.0
+
+
+def _recency_decay(age_hours: float) -> float:
+    if RANK_WINDOW_HOURS <= 0:
+        return 0.0
+    return max(0.0, 1.0 - age_hours / RANK_WINDOW_HOURS)
+
+
+def _best_rep(arts: list[dict]) -> dict:
+    """Pick the nicest article in a cluster: prefer image, reputable source, title."""
+    return max(arts, key=lambda a: (
+        1 if (a.get("image_url") or "").startswith("http") else 0,
+        _source_weight(a.get("url", "")),
+        min(len(a.get("title") or ""), 90),
+    ))
+
+
+def select_articles(all_articles: list[dict], n: int) -> list[dict]:
+    """Return the top-N articles to feature, ranked by importance (or recency)."""
+    base = [a for a in all_articles if (a.get("title") or "").strip() and not _is_webstory(a)]
+    if not base:  # nothing but web stories -> fall back so we never send empty
+        base = [a for a in all_articles if (a.get("title") or "").strip()]
+
+    if not RANKING:
+        return base[:n]  # feed is already newest-first
+
+    # Restrict to the recent window, but never starve the digest.
+    windowed = [a for a in base if _age_hours(a) <= RANK_WINDOW_HOURS]
+    pool = windowed if len(windowed) >= n else base
+
+    for a in pool:
+        a["_tokens"] = _url_tokens(a.get("url", ""))
+        a["_domain"] = _publisher(a.get("url", ""))
+
+    # Greedy single-pass clustering on URL-token overlap (pool is newest-first).
+    clusters: list[dict] = []
+    for art in pool:
+        toks = art["_tokens"]
+        best, best_ov = None, 0.0
+        if toks:
+            for c in clusters:
+                inter = len(toks & c["tokens"])
+                if inter < MIN_SHARED:
+                    continue
+                ov = inter / (min(len(toks), len(c["tokens"])) or 1)
+                if ov >= SIM_THRESHOLD and ov > best_ov:
+                    best, best_ov = c, ov
+        if best is not None:
+            best["arts"].append(art)
+        else:
+            clusters.append({"tokens": toks, "arts": [art]})
+
+    scored: list[tuple[float, int, dict]] = []
+    for c in clusters:
+        sources = {a["_domain"] for a in c["arts"] if a["_domain"]}
+        rep = dict(_best_rep(c["arts"]))
+        newest_age = min(_age_hours(a) for a in c["arts"])
+        score = (
+            W_CORROB * len(sources)
+            + W_SOURCE * max(_source_weight(a.get("url", "")) for a in c["arts"])
+            + W_CATEGORY * _category_weight(rep)
+            + W_RECENCY * _recency_decay(newest_age)
+            + W_IMAGE * (1.0 if (rep.get("image_url") or "").startswith("http") else 0.0)
+        )
+        rep["_sources"] = len(sources)
+        rep["_score"] = round(score, 2)
+        scored.append((score, len(sources), rep))
+
+    eligible = [t for t in scored if t[1] >= MIN_SOURCES]
+    eligible.sort(key=lambda t: t[0], reverse=True)
+    picked = [t[2] for t in eligible[:n]]
+
+    # Fallback fill (keeps small-language feeds full) by recency.
+    if len(picked) < n:
+        seen = {a.get("url") for a in picked}
+        for a in pool:
+            if a.get("url") in seen:
+                continue
+            picked.append(a)
+            seen.add(a.get("url"))
+            if len(picked) >= n:
+                break
+    return picked[:n]
 
 
 def send_to_topic(access_token: str, project_id: str, topic: str,
@@ -199,26 +446,35 @@ def main() -> None:
     access_token = credentials.token
     print(f"[ok] authenticated project={project_id}")
 
+    mode = "importance" if RANKING else "recency"
+    print(f"[..] ranking={mode} window={RANK_WINDOW_HOURS}h min_sources={MIN_SOURCES}")
+
     sent = 0
     for lang in LANGS:
         title = SLOT_TITLES[slot].get(lang) or SLOT_TITLES[slot]["en"]
         try:
-            articles = fetch_top_articles(lang, TOP_N)
+            feed = fetch_feed(lang)
         except Exception as exc:
             print(f"[warn] {lang}: could not fetch feed: {exc}")
             continue
 
-        if not articles:
+        if not feed:
             print(f"[warn] {lang}: feed empty, skipping")
             continue
 
+        articles = select_articles(feed, TOP_N)
         body = build_body(articles)
         image_url = first_image(articles)
         deep_link = (articles[0].get("url") or "").strip() or "explore"
         topic = f"news_{lang}"
 
         if DRY_RUN:
-            print(f"\n----- DRY RUN [{topic}] -----\n{title}\n{body}\nimage={image_url}\n")
+            print(f"\n----- DRY RUN [{topic}] slot={slot} -----\n{title}")
+            for a in articles:
+                src, sc = a.get("_sources"), a.get("_score")
+                tag = f"  [sources={src}, score={sc}]" if src is not None else ""
+                print(f"  \u2022 {(a.get('title') or '').strip()}{tag}")
+            print(f"image={image_url}\n")
             continue
 
         status, text = send_to_topic(

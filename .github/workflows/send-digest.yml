@@ -18,6 +18,14 @@ on:
         description: "Comma list of languages (blank = all)"
         required: false
         default: ""
+      ranking:
+        description: "Rank by importance (uncheck for pure recency)"
+        type: boolean
+        default: true
+      min_sources:
+        description: "Min publishers per story (blank = 1)"
+        required: false
+        default: ""
       dry_run:
         description: "Build & log only, do not send"
         type: boolean
@@ -63,6 +71,8 @@ jobs:
         env:
           SLOT: ${{ github.event.inputs.slot || 'auto' }}
           LANGS: ${{ github.event.inputs.langs }}
+          RANKING: ${{ github.event.inputs.ranking == 'false' && '0' || '' }}
+          MIN_SOURCES: ${{ github.event.inputs.min_sources }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
           SERVICE_ACCOUNT_FILE: service_account.json
         run: |

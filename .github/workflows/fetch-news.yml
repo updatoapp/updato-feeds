@@ -2,8 +2,9 @@ name: Fetch news feeds
 
 on:
   schedule:
-    # Hourly, at minute 0 (UTC). GitHub may delay scheduled runs under load.
-    - cron: "0 * * * *"
+    # Hourly at :25 UTC (= :55 past each IST hour). Deliberately OFF minute 0 —
+    # GitHub deprioritizes/drops top-of-hour scheduled runs under load.
+    - cron: "25 * * * *"
   workflow_dispatch: {}
 
 # Allow the job to push the regenerated feed files back to the repo.

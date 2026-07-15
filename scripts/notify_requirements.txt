@@ -1,0 +1,3 @@
+# Minimal dependencies for the serverless digest push (send_digest.py).
+requests==2.32.3
+google-auth==2.35.0

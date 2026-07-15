@@ -1,0 +1,75 @@
+name: Send news digest
+
+on:
+  schedule:
+    # Times are UTC. IST = UTC + 5:30. GitHub may delay scheduled runs.
+    - cron: "30 2 * * *"    # 08:00 IST  -> morning
+    - cron: "30 7 * * *"    # 13:00 IST  -> afternoon
+    - cron: "30 12 * * *"   # 18:00 IST  -> evening
+    - cron: "0 16 * * *"    # 21:30 IST  -> night
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Which digest to send"
+        type: choice
+        default: auto
+        options: [auto, morning, afternoon, evening, night]
+      langs:
+        description: "Comma list of languages (blank = all)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Build & log only, do not send"
+        type: boolean
+        default: false
+
+# The digest send only reads the repo; no push needed.
+permissions:
+  contents: read
+
+concurrency:
+  group: send-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: scripts/notify_requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/notify_requirements.txt
+
+      - name: Write service account key
+        env:
+          FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FCM_SERVICE_ACCOUNT" ]; then
+            echo "::error::Missing FCM_SERVICE_ACCOUNT secret."
+            exit 1
+          fi
+          printf '%s' "$FCM_SERVICE_ACCOUNT" > service_account.json
+
+      - name: Send digest
+        env:
+          SLOT: ${{ github.event.inputs.slot || 'auto' }}
+          LANGS: ${{ github.event.inputs.langs }}
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+          SERVICE_ACCOUNT_FILE: service_account.json
+        run: |
+          # Fall back to the default language list when the input is blank.
+          if [ -z "$LANGS" ]; then unset LANGS; fi
+          python scripts/send_digest.py
+
+      - name: Clean up key
+        if: always()
+        run: rm -f service_account.json

@@ -1,0 +1,27 @@
+# Allowlist strategy: ignore EVERYTHING, then re-include only the files the
+# feed-creation GitHub Action actually needs. This keeps the dashboard,
+# node_modules, notebooks, logs, and the secret-bearing server files
+# (config.py / db.py / utils.py) out of the repo.
+
+# 1) Ignore everything at the root.
+/*
+
+# 2) Re-include only what feed creation needs.
+!/.gitignore
+!/.github/
+!/scripts/
+!/feeds/
+!/content_filters.py
+!/category_keywords.csv
+!/india_pincode_locations.csv
+!/sitemap_backup.csv
+!/README.md
+
+# 3) Still drop junk that may appear inside the re-included folders.
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.log
+*.log.*
+.DS_Store
+Thumbs.db

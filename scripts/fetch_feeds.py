@@ -57,8 +57,10 @@ MAX_PER_FEED = int(os.getenv("MAX_PER_FEED", "500"))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
 # Parallelism for network-bound sitemap + article fetching.
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "16"))
-# Webstory sitemaps update slower / carry older lastmod stamps than breaking news.
-WEBSTORY_RECENT_HOURS = float(os.getenv("WEBSTORY_RECENT_HOURS", "72"))
+# Webstory sitemaps update slowly; use retention window (default 7d), not 90min.
+WEBSTORY_RECENT_HOURS = float(
+    os.getenv("WEBSTORY_RECENT_HOURS", str(RETENTION_DAYS * 24))
+)
 
 # Categories / title keywords to hard-drop from the feed. Daily राशिफल is
 # published by many Hindi outlets at once, so corroboration would otherwise
@@ -279,6 +281,12 @@ def fetch_articles_from_sitemap(sitemap_url: str) -> list[dict]:
         if res.status_code != 200:
             print(f"[warn] HTTP {res.status_code} for {sitemap_url}")
             return []
+        # Some "sitemap" URLs (e.g. newsnation date links) return HTML pages.
+        ctype = (res.headers.get("content-type") or "").lower()
+        head = res.content.lstrip()[:64].lower()
+        if "text/html" in ctype or head.startswith(b"<!doctype") or head.startswith(b"<html"):
+            print(f"[warn] not XML sitemap (got HTML) for {sitemap_url}")
+            return []
         root = _parse_xml(res.content)
     except Exception as exc:
         print(f"[warn] failed to parse sitemap {sitemap_url}: {exc}")
@@ -336,6 +344,49 @@ def _is_webstory_sitemap(url: str) -> bool:
     )
 
 
+def _decode_html(res: requests.Response) -> str:
+    """Decode article HTML safely for Indic publishers.
+
+    Many sites (e.g. andhrajyothy.com) ship UTF-8 bodies but omit charset in
+    Content-Type. requests then defaults to ISO-8859-1, turning Telugu into
+    mojibake like 'à°\x88à°¸à°¾…'. Prefer UTF-8 / meta charset over that guess.
+    """
+    raw = res.content or b""
+    ctype = (res.headers.get("content-type") or "").lower()
+
+    declared = None
+    m = re.search(r"charset=([\w-]+)", ctype)
+    if m:
+        declared = m.group(1)
+    else:
+        hm = re.search(br"charset=['\"]?([\w-]+)", raw[:8192], re.I)
+        if hm:
+            declared = hm.group(1).decode("ascii", errors="ignore")
+
+    candidates: list[str] = []
+    if declared:
+        candidates.append(declared)
+    candidates.extend(["utf-8", "utf-8-sig"])
+    if res.apparent_encoding:
+        candidates.append(res.apparent_encoding)
+
+    seen: set[str] = set()
+    for enc in candidates:
+        key = enc.lower().replace("_", "-")
+        if key in seen:
+            continue
+        seen.add(key)
+        # Skip the broken default when charset was missing.
+        if key in {"iso-8859-1", "latin-1", "latin1"} and not declared:
+            continue
+        try:
+            return raw.decode(enc)
+        except (LookupError, UnicodeDecodeError):
+            continue
+
+    return raw.decode("utf-8", errors="replace")
+
+
 def scrape_article(entry: dict, lang: str) -> dict | None:
     url = entry["url"]
     try:
@@ -343,7 +394,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         if res.status_code != 200:
             print(f"[warn] HTTP {res.status_code} for {url}")
             return None
-        soup = BeautifulSoup(res.text, "html.parser")
+        soup = BeautifulSoup(_decode_html(res), "html.parser")
 
         def og(prop: str) -> str | None:
             tag = soup.find("meta", property=prop)
@@ -353,15 +404,21 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         description = og("og:description") or ""
         image_url = og("og:image") or entry.get("image") or None
 
+        # If scrape still looks like latin1-mojibake, prefer sitemap title.
+        if _looks_like_mojibake(title) and entry.get("title"):
+            title = entry["title"]
+        title = _repair_mojibake(title)
+        description = _repair_mojibake(description)
+
         pub_time = entry["published_time"]
         raw_time = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
 
-        categories = extract_categories_from_url(url)
-        # Force-tag webstories so ranking/UI can see them (URL keywords often split
-        # "web-stories" into tokens that miss the category sheet).
-        if entry.get("from_webstory_sitemap") or _is_webstory({"url": url, "categories": categories}):
-            if not any(str(c).lower() == "webstories" for c in categories):
-                categories = list(categories) + ["webstories"]
+        is_ws = bool(
+            entry.get("from_webstory_sitemap")
+            or _is_webstory({"url": url, "categories": categories})
+        )
+        if is_ws and not any(str(c).lower() == "webstories" for c in categories):
+            categories = list(categories) + ["webstories"]
 
         return {
             "url": url,
@@ -370,7 +427,8 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
             "image_url": image_url,
             "dominant_color": DEFAULT_DOMINANT_COLOR,
             "text_color": DEFAULT_TEXT_COLOR,
-            "is_vertical": False,
+            # Old server marked AMP/web stories vertical for the swipe UI.
+            "is_vertical": is_ws,
             "lang": lang,
             "categories": categories,
             "raw_time": raw_time,
@@ -378,6 +436,30 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
     except Exception as exc:
         print(f"[warn] scrape failed for {url}: {exc}")
         return None
+
+
+def _looks_like_mojibake(text: str) -> bool:
+    if not text:
+        return False
+    # UTF-8 Indic misread as Latin-1 commonly starts with these digraphs.
+    markers = ("à¤", "à¥", "à¦", "à§", "à¨", "à©", "àª", "à«", "à®", "à¯", "à°", "à±", "à²", "à³", "à´", "àµ")
+    return any(m in text for m in markers)
+
+
+def _repair_mojibake(text: str) -> str:
+    """Undo UTF-8-as-Latin-1 mojibake when present; otherwise return unchanged."""
+    if not text or not _looks_like_mojibake(text):
+        return text
+    try:
+        repaired = text.encode("latin-1").decode("utf-8")
+        # Prefer repaired if it gained Indic characters.
+        if sum("\u0900" <= c <= "\u0d7f" for c in repaired) >= sum(
+            "\u0900" <= c <= "\u0d7f" for c in text
+        ):
+            return repaired
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    return text
 
 
 def is_acceptable(article: dict) -> bool:

@@ -246,6 +246,25 @@ WEBSTORY_URL_MARKERS = (
     "slideshow", "/photos/", "/gallery/", "/videos/",
 )
 
+# Same defaults as fetch_feeds — daily राशिफल is multi-publisher noise.
+EXCLUDED_CATEGORIES = {
+    p.strip().lower()
+    for p in os.getenv(
+        "EXCLUDED_CATEGORIES",
+        "astrology,horoscope,rashifal,panchang,jyotish",
+    ).split(",")
+    if p.strip()
+}
+EXCLUDED_TITLE_KEYWORDS = {
+    p.strip().lower()
+    for p in os.getenv(
+        "EXCLUDED_TITLE_KEYWORDS",
+        "राशिफल,पंचांग,कुंडली,ज्योतिष,rashifal,horoscope,panchang,astrology,"
+        "aaj ka rashifal,aaj ka panchang",
+    ).split(",")
+    if p.strip()
+}
+
 
 def _publisher(url: str) -> str:
     try:
@@ -294,6 +313,22 @@ def _is_webstory(article: dict) -> bool:
     return any(m in url for m in WEBSTORY_URL_MARKERS)
 
 
+def _is_excluded(article: dict) -> bool:
+    if EXCLUDED_CATEGORIES:
+        cats = article.get("categories") or []
+        if isinstance(cats, str):
+            cats = [cats]
+        for c in cats:
+            cl = str(c).lower().strip()
+            if cl in EXCLUDED_CATEGORIES or any(x in cl for x in EXCLUDED_CATEGORIES):
+                return True
+    if EXCLUDED_TITLE_KEYWORDS:
+        blob = f"{article.get('title', '')} {article.get('description', '')} {article.get('url', '')}".lower()
+        if any(kw in blob for kw in EXCLUDED_TITLE_KEYWORDS):
+            return True
+    return False
+
+
 def _category_weight(article: dict) -> float:
     cats = article.get("categories") or []
     if isinstance(cats, str):
@@ -332,8 +367,13 @@ def _best_rep(arts: list[dict]) -> dict:
 
 def select_articles(all_articles: list[dict], n: int) -> list[dict]:
     """Return the top-N articles to feature, ranked by importance (or recency)."""
-    base = [a for a in all_articles if (a.get("title") or "").strip() and not _is_webstory(a)]
-    if not base:  # nothing but web stories -> fall back so we never send empty
+    base = [
+        a for a in all_articles
+        if (a.get("title") or "").strip() and not _is_webstory(a) and not _is_excluded(a)
+    ]
+    if not base:  # nothing but web stories / excluded -> fall back so we never send empty
+        base = [a for a in all_articles if (a.get("title") or "").strip() and not _is_excluded(a)]
+    if not base:
         base = [a for a in all_articles if (a.get("title") or "").strip()]
 
     if not RANKING:

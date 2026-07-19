@@ -58,6 +58,27 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
 # Parallelism for network-bound sitemap + article fetching.
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "16"))
 
+# Categories / title keywords to hard-drop from the feed. Daily राशिफल is
+# published by many Hindi outlets at once, so corroboration would otherwise
+# treat it as "popular" and flood the morning swipe. Comma-separated; empty
+# string disables. Override via EXCLUDED_CATEGORIES / EXCLUDED_TITLE_KEYWORDS.
+def _csv_set(env_name: str, default: str) -> set[str]:
+    raw = os.getenv(env_name)
+    if raw is None:
+        raw = default
+    return {p.strip().lower() for p in raw.split(",") if p.strip()}
+
+
+EXCLUDED_CATEGORIES = _csv_set(
+    "EXCLUDED_CATEGORIES",
+    "astrology,horoscope,rashifal,panchang,jyotish",
+)
+EXCLUDED_TITLE_KEYWORDS = _csv_set(
+    "EXCLUDED_TITLE_KEYWORDS",
+    "राशिफल,पंचांग,कुंडली,ज्योतिष,rashifal,horoscope,panchang,astrology,"
+    "aaj ka rashifal,aaj ka panchang,today's horoscope",
+)
+
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; UpdatoFeedBot/1.0; +https://updato.app)"}
 
 SITEMAP_SHEET_URL = os.getenv(
@@ -486,6 +507,27 @@ def _is_webstory(article: dict) -> bool:
     return any(m in url for m in WEBSTORY_URL_MARKERS)
 
 
+def _is_excluded(article: dict) -> bool:
+    """True if this article's category or title matches a blocked category/keyword."""
+    if EXCLUDED_CATEGORIES:
+        cats = article.get("categories") or []
+        if isinstance(cats, str):
+            cats = [cats]
+        for c in cats:
+            cl = str(c).lower().strip()
+            if cl in EXCLUDED_CATEGORIES:
+                return True
+            # Partial match so "aaj-ka-rashifal" style tags still hit.
+            if any(x in cl for x in EXCLUDED_CATEGORIES):
+                return True
+
+    if EXCLUDED_TITLE_KEYWORDS:
+        blob = f"{article.get('title', '')} {article.get('description', '')} {article.get('url', '')}".lower()
+        if any(kw in blob for kw in EXCLUDED_TITLE_KEYWORDS):
+            return True
+    return False
+
+
 def _category_weight(article: dict) -> float:
     cats = article.get("categories") or []
     if isinstance(cats, str):
@@ -538,10 +580,18 @@ def rank_and_diversify(articles: list[dict], limit: int) -> list[dict]:
     if not articles:
         return []
 
-    # Prefer non-webstories; fall back if that's all we have.
-    pool = [a for a in articles if (a.get("title") or "").strip() and not _is_webstory(a)]
+    # Prefer non-webstories / non-excluded; fall back if that's all we have.
+    pool = [
+        a for a in articles
+        if (a.get("title") or "").strip() and not _is_webstory(a) and not _is_excluded(a)
+    ]
+    dropped = len(articles) - len(pool)
+    if not pool:
+        pool = [a for a in articles if (a.get("title") or "").strip() and not _is_excluded(a)]
     if not pool:
         pool = [a for a in articles if (a.get("title") or "").strip()]
+    if dropped:
+        print(f"    excluded {dropped} articles (blocked categories/keywords)")
 
     for a in pool:
         a["_tokens"] = _url_tokens(a.get("url", ""))

@@ -57,6 +57,8 @@ MAX_PER_FEED = int(os.getenv("MAX_PER_FEED", "500"))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
 # Parallelism for network-bound sitemap + article fetching.
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "16"))
+# Webstory sitemaps update slower / carry older lastmod stamps than breaking news.
+WEBSTORY_RECENT_HOURS = float(os.getenv("WEBSTORY_RECENT_HOURS", "72"))
 
 # Categories / title keywords to hard-drop from the feed. Daily राशिफल is
 # published by many Hindi outlets at once, so corroboration would otherwise
@@ -282,11 +284,17 @@ def fetch_articles_from_sitemap(sitemap_url: str) -> list[dict]:
         print(f"[warn] failed to parse sitemap {sitemap_url}: {exc}")
         return []
 
-    articles: list[dict] = []
-    for url_tag in root.findall("ns:url", SITEMAP_NS):
-        if len(articles) >= MAX_PER_SITEMAP:
-            break
+    is_ws_sitemap = _is_webstory_sitemap(sitemap_url)
+    window = (
+        timedelta(hours=WEBSTORY_RECENT_HOURS)
+        if is_ws_sitemap
+        else timedelta(minutes=RECENT_MINUTES)
+    )
 
+    # Collect everything inside the window first, then take the newest N.
+    # (Sitemap order is not always newest-first, and early-break dropped webstories.)
+    candidates: list[dict] = []
+    for url_tag in root.findall("ns:url", SITEMAP_NS):
         loc_tag = url_tag.find("ns:loc", SITEMAP_NS)
         # NB: avoid `a or b` on XML elements -- lxml treats a childless element
         # as falsy even when it has text, which would skip valid dates.
@@ -299,20 +307,33 @@ def fetch_articles_from_sitemap(sitemap_url: str) -> list[dict]:
         try:
             pub_time = date_parser.parse(pub_date_tag.text.strip())
             now = datetime.now(pub_time.tzinfo) if pub_time.tzinfo else datetime.now()
-            if (now - pub_time) > timedelta(minutes=RECENT_MINUTES):
+            if (now - pub_time) > window:
                 continue
         except Exception:
             continue
 
         title_tag = url_tag.find("news:news/news:title", SITEMAP_NS)
         image_tag = url_tag.find("image:image/image:loc", SITEMAP_NS)
-        articles.append({
+        candidates.append({
             "url": loc_tag.text.strip(),
             "title": title_tag.text.strip() if title_tag is not None else "",
             "image": image_tag.text.strip() if image_tag is not None else "",
             "published_time": pub_time,
+            "from_webstory_sitemap": is_ws_sitemap,
         })
-    return articles
+
+    candidates.sort(key=lambda a: a["published_time"], reverse=True)
+    return candidates[:MAX_PER_SITEMAP]
+
+
+def _is_webstory_sitemap(url: str) -> bool:
+    u = (url or "").lower()
+    return any(
+        m in u
+        for m in (
+            "webstory", "webstories", "web-stories", "visualstories", "visual-stories",
+        )
+    )
 
 
 def scrape_article(entry: dict, lang: str) -> dict | None:
@@ -335,6 +356,13 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         pub_time = entry["published_time"]
         raw_time = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
 
+        categories = extract_categories_from_url(url)
+        # Force-tag webstories so ranking/UI can see them (URL keywords often split
+        # "web-stories" into tokens that miss the category sheet).
+        if entry.get("from_webstory_sitemap") or _is_webstory({"url": url, "categories": categories}):
+            if not any(str(c).lower() == "webstories" for c in categories):
+                categories = list(categories) + ["webstories"]
+
         return {
             "url": url,
             "title": title,
@@ -344,7 +372,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
             "text_color": DEFAULT_TEXT_COLOR,
             "is_vertical": False,
             "lang": lang,
-            "categories": extract_categories_from_url(url),
+            "categories": categories,
             "raw_time": raw_time,
         }
     except Exception as exc:

@@ -51,6 +51,27 @@ jobs:
           EXCLUDED_CATEGORIES: "astrology,horoscope,rashifal,panchang,jyotish"
         run: python scripts/fetch_feeds.py
 
+      # Primary CDN: Cloudflare R2 (set-and-forget). Pages git commit below stays as fallback.
+      - name: Upload feeds to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$CF_ACCOUNT_ID" ]; then
+            echo "::warning::R2 secrets missing — skipping upload (Pages fallback only)."
+            exit 0
+          fi
+          BUCKET="${R2_BUCKET:-updato-feeds}"
+          pip install --quiet awscli
+          aws s3 sync feeds/ "s3://${BUCKET}/feeds/" \
+            --endpoint-url "https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --content-type "application/gzip" \
+            --cache-control "public, max-age=900" \
+            --exclude "*" --include "*.json.gz"
+
       - name: Commit & push updated feeds
         run: |
           git config user.name "github-actions[bot]"

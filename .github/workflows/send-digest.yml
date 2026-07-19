@@ -76,9 +76,14 @@ jobs:
           MIN_SOURCES: ${{ github.event.inputs.min_sources }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
           SERVICE_ACCOUNT_FILE: service_account.json
+          R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
         run: |
           # Fall back to the default language list when the input is blank.
           if [ -z "$LANGS" ]; then unset LANGS; fi
+          # Prefer R2 public CDN when secret is set (e.g. https://pub-xxx.r2.dev).
+          if [ -n "$R2_PUBLIC_BASE" ]; then
+            export FEED_BASE_URL="${R2_PUBLIC_BASE%/}/feeds"
+          fi
           python scripts/send_digest.py
 
       - name: Clean up key

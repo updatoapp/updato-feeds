@@ -434,7 +434,8 @@ CATEGORY_WEIGHTS = {
     "entertainment": 0.4, "bollywood": 0.4, "movies": 0.4,
     "lifestyle": 0.3, "viral": 0.3, "trending": 0.3, "misc": 0.25,
     "astrology": 0.15, "horoscope": 0.15,
-    "webstories": 0.1, "photos": 0.15, "gallery": 0.15, "videos": 0.2,
+    # Webstories compete in the swipe feed (same ballpark as lifestyle/entertainment).
+    "webstories": 0.45, "photos": 0.35, "gallery": 0.35, "videos": 0.35,
 }
 URL_STOPWORDS = {
     "news", "story", "stories", "article", "articleshow", "videoshow",
@@ -580,14 +581,12 @@ def rank_and_diversify(articles: list[dict], limit: int) -> list[dict]:
     if not articles:
         return []
 
-    # Prefer non-webstories / non-excluded; fall back if that's all we have.
+    # Drop blocked categories/keywords only — webstories stay in the swipe feed.
     pool = [
         a for a in articles
-        if (a.get("title") or "").strip() and not _is_webstory(a) and not _is_excluded(a)
+        if (a.get("title") or "").strip() and not _is_excluded(a)
     ]
     dropped = len(articles) - len(pool)
-    if not pool:
-        pool = [a for a in articles if (a.get("title") or "").strip() and not _is_excluded(a)]
     if not pool:
         pool = [a for a in articles if (a.get("title") or "").strip()]
     if dropped:

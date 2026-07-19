@@ -375,6 +375,257 @@ def load_existing_feed(lang: str) -> list[dict]:
         return []
 
 
+# --------------------------------------------------------------------------- #
+# Popularity ranking + topic diversification (URL-token based)
+# --------------------------------------------------------------------------- #
+# Cross-publisher "same story" detection uses English/romanized URL slugs
+# (reliable across Hindi/Tamil/etc.). One best article per topic cluster is
+# kept so the swipe feed never shows the same story from 3 publishers in a row.
+LANG_SUBDOMAINS = {
+    "hindi", "english", "bangla", "bengali", "tamil", "telugu", "kannada",
+    "malayalam", "hin", "tam", "tel", "kan", "ben", "mal", "eng", "mr", "guj",
+}
+HIGH_REPUTATION = {
+    "moneycontrol.com", "livemint.com", "ndtvprofit.com", "indiatoday.in",
+    "hindustantimes.com", "indianexpress.com", "newindianexpress.com",
+    "timesnownews.com", "tribuneindia.com", "businesstoday.in", "cnbctv18.com",
+    "economictimes.com", "news18.com", "aajtak.in", "zeenews.india.com",
+    "jagran.com", "eenadu.net", "andhrajyothy.com", "vijaykarnataka.com",
+    "dinamalar.com", "dinamani.com", "madhyamam.com", "thelallantop.com",
+    "downtoearth.org.in", "indiatimes.com", "navbharattimes.indiatimes.com",
+    "samayam.com", "news9live.com", "abplive.com", "india.com",
+}
+LOW_REPUTATION = {
+    "koimoi.com", "pinkvilla.com", "bollywoodhungama.com", "mayapuri.com",
+    "herzindagi.com", "samacharnama.com", "lalluram.com", "icifmede.com",
+    "bhadas4media.com", "sachkahoon.com", "ekhabartoday.com",
+    "keralaonlinenews.com", "sathyamonline.com", "vishwavani.news",
+    "news7tamil.live", "people.com",
+}
+CATEGORY_WEIGHTS = {
+    "national": 1.0, "nation": 1.0, "india": 1.0, "indian": 0.95, "politics": 1.0,
+    "world": 1.0, "world-news": 1.0, "international": 1.0, "defence": 0.9, "defense": 0.9,
+    "business": 0.9, "economy": 0.9, "finance": 0.9, "market": 0.9, "markets": 0.9,
+    "science": 0.85, "health": 0.85,
+    "technology": 0.75, "tech": 0.75, "education": 0.75,
+    "sports": 0.6, "sport": 0.6, "cricket": 0.6,
+    "auto": 0.5, "automobile": 0.5,
+    "entertainment": 0.4, "bollywood": 0.4, "movies": 0.4,
+    "lifestyle": 0.3, "viral": 0.3, "trending": 0.3, "misc": 0.25,
+    "astrology": 0.15, "horoscope": 0.15,
+    "webstories": 0.1, "photos": 0.15, "gallery": 0.15, "videos": 0.2,
+}
+URL_STOPWORDS = {
+    "news", "story", "stories", "article", "articleshow", "videoshow",
+    "photoshow", "live", "liveblog", "video", "videos", "photo", "photos",
+    "gallery", "web", "webstory", "webstories", "visualstories", "slideshow",
+    "amp", "html", "htm", "cms", "www", "com", "latest", "breaking", "update",
+    "updates", "watch", "read", "big", "exclusive", "detail", "details",
+    "content", "index", "home", "google", "sitemap", "feed", "rss", "post",
+    "the", "and", "for", "with", "from", "this", "that", "into", "over",
+    "after", "before", "amid", "will", "says", "said", "why", "how", "what",
+    "when", "who", "top", "new", "get", "you", "your", "his", "her", "are",
+    "world", "india", "national", "international", "state", "states", "city",
+    "sports", "sport", "business", "entertainment", "tech", "technology",
+    "lifestyle", "health", "education", "auto", "astrology", "viral",
+    "trending", "bollywood", "movies", "cricket", "nation", "regional",
+}
+WEBSTORY_URL_MARKERS = (
+    "web-stories", "webstory", "webstories", "visualstories", "photo-story",
+    "slideshow", "/photos/", "/gallery/", "/videos/",
+)
+SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD", "0.5"))
+MIN_SHARED = int(os.getenv("MIN_SHARED", "2"))
+RANK_WINDOW_HOURS = float(os.getenv("RANK_WINDOW_HOURS", "48"))
+
+
+def _publisher(url: str) -> str:
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        return ""
+    if host.startswith("www."):
+        host = host[4:]
+    parts = host.split(".")
+    if parts and parts[0] in LANG_SUBDOMAINS:
+        parts = parts[1:]
+    return ".".join(parts)
+
+
+def _source_weight(url: str) -> float:
+    pub = _publisher(url)
+    if pub in HIGH_REPUTATION:
+        return 1.0
+    if pub in LOW_REPUTATION:
+        return 0.25
+    return 0.6
+
+
+def _url_tokens(url: str) -> set[str]:
+    try:
+        path = urlparse(url).path.lower()
+    except Exception:
+        return set()
+    tokens: set[str] = set()
+    for seg in path.split("/"):
+        seg = re.sub(r"\.(cms|html?|amp)$", "", seg)
+        if not seg or seg.replace("-", "").replace("_", "").isnumeric():
+            continue
+        for tok in re.split(r"[-_]", seg):
+            if len(tok) < 3 or not tok.isalpha() or tok in URL_STOPWORDS:
+                continue
+            tokens.add(tok)
+    return tokens
+
+
+def _is_webstory(article: dict) -> bool:
+    cats = article.get("categories") or []
+    if isinstance(cats, list) and any(str(c).lower() == "webstories" for c in cats):
+        return True
+    url = (article.get("url") or "").lower()
+    return any(m in url for m in WEBSTORY_URL_MARKERS)
+
+
+def _category_weight(article: dict) -> float:
+    cats = article.get("categories") or []
+    if isinstance(cats, str):
+        cats = [cats]
+    weights = [
+        CATEGORY_WEIGHTS[str(c).lower()]
+        for c in cats
+        if str(c).lower() in CATEGORY_WEIGHTS
+    ]
+    return max(weights) if weights else 0.55
+
+
+def _age_hours(article: dict) -> float:
+    ts = str(article.get("raw_time", "")).strip()
+    if not ts:
+        return 1e9
+    try:
+        age = (datetime.now(IST) - _parse_ist(ts)).total_seconds() / 3600.0
+        return max(0.0, age)
+    except Exception:
+        return 1e9
+
+
+def _primary_category(article: dict) -> str:
+    cats = article.get("categories") or []
+    if isinstance(cats, str) and cats:
+        return cats.split(",")[0].strip().lower()
+    if isinstance(cats, list) and cats:
+        return str(cats[0]).lower()
+    return ""
+
+
+def _best_rep(arts: list[dict]) -> dict:
+    return max(arts, key=lambda a: (
+        1 if (a.get("image_url") or "").startswith("http") else 0,
+        _source_weight(a.get("url", "")),
+        min(len(a.get("title") or ""), 90),
+        -_age_hours(a),
+    ))
+
+
+def rank_and_diversify(articles: list[dict], limit: int) -> list[dict]:
+    """Collapse same-topic clusters, rank by popularity, diversify feed order.
+
+    - Same story from many publishers → one best article (no back-to-back repeats).
+    - Score = corroboration + source reputation + category + recency.
+    - Ordering avoids same publisher / category streaks so the swipe feed
+      feels varied rather than three World Cup cards in a row.
+    """
+    if not articles:
+        return []
+
+    # Prefer non-webstories; fall back if that's all we have.
+    pool = [a for a in articles if (a.get("title") or "").strip() and not _is_webstory(a)]
+    if not pool:
+        pool = [a for a in articles if (a.get("title") or "").strip()]
+
+    for a in pool:
+        a["_tokens"] = _url_tokens(a.get("url", ""))
+        a["_domain"] = _publisher(a.get("url", ""))
+
+    # Newest-first helps greedy clustering attach to fresher seeds.
+    pool.sort(key=lambda a: _parse_ist(a.get("raw_time", "")), reverse=True)
+
+    clusters: list[dict] = []
+    for art in pool:
+        toks = art["_tokens"]
+        best, best_ov = None, 0.0
+        if toks:
+            for c in clusters:
+                inter = len(toks & c["tokens"])
+                if inter < MIN_SHARED:
+                    continue
+                ov = inter / (min(len(toks), len(c["tokens"])) or 1)
+                if ov >= SIM_THRESHOLD and ov > best_ov:
+                    best, best_ov = c, ov
+        if best is not None:
+            best["arts"].append(art)
+            best["tokens"] |= toks
+        else:
+            clusters.append({"tokens": set(toks), "arts": [art]})
+
+    scored: list[dict] = []
+    for i, c in enumerate(clusters):
+        sources = {a["_domain"] for a in c["arts"] if a["_domain"]}
+        rep = dict(_best_rep(c["arts"]))  # copy so we don't mutate shared refs oddly
+        newest_age = min(_age_hours(a) for a in c["arts"])
+        recency = max(0.0, 1.0 - newest_age / RANK_WINDOW_HOURS) if RANK_WINDOW_HOURS else 0.0
+        score = (
+            2.0 * len(sources)
+            + 1.5 * max(_source_weight(a.get("url", "")) for a in c["arts"])
+            + 1.0 * _category_weight(rep)
+            + 0.8 * recency
+            + 0.3 * (1.0 if (rep.get("image_url") or "").startswith("http") else 0.0)
+        )
+        # Strip helper keys before writing to the CDN feed.
+        for key in ("_tokens", "_domain"):
+            rep.pop(key, None)
+        rep["source_count"] = len(sources)
+        rep["score"] = round(score, 2)
+        scored.append({
+            "id": i,
+            "score": score,
+            "domain": _publisher(rep.get("url", "")),
+            "category": _primary_category(rep),
+            "article": rep,
+        })
+
+    # Greedy diversify: always take the highest remaining score that doesn't
+    # repeat the previous publisher or category when alternatives exist.
+    remaining = sorted(scored, key=lambda x: x["score"], reverse=True)
+    ordered: list[dict] = []
+    last_domain = None
+    last_category = None
+    while remaining and len(ordered) < limit:
+        pick_idx = 0
+        for i, cand in enumerate(remaining):
+            same_dom = last_domain and cand["domain"] == last_domain
+            same_cat = last_category and cand["category"] and cand["category"] == last_category
+            if not same_dom and not same_cat:
+                pick_idx = i
+                break
+            # Soft preference: allow same category if different publisher,
+            # but still avoid same publisher back-to-back when possible.
+            if same_dom:
+                continue
+            if not same_dom:
+                pick_idx = i
+                break
+        chosen = remaining.pop(pick_idx)
+        ordered.append(chosen["article"])
+        last_domain = chosen["domain"]
+        last_category = chosen["category"] or last_category
+
+    multi = sum(1 for a in ordered if (a.get("source_count") or 1) >= 2)
+    print(f"    ranked: {len(pool)} -> {len(clusters)} topics -> {len(ordered)} "
+          f"(multi-source={multi})")
+    return ordered
+
+
 def write_feed(lang: str, articles: list[dict]) -> int:
     cutoff = datetime.now(IST) - timedelta(days=RETENTION_DAYS)
 
@@ -383,11 +634,13 @@ def write_feed(lang: str, articles: list[dict]) -> int:
         url = art.get("url")
         if not url:
             continue
-        merged[url] = {**merged.get(url, {}), **art}  # newer scrape wins
+        # Drop ranking helpers / stale scores from previous runs before re-rank.
+        clean = {k: v for k, v in {**merged.get(url, {}), **art}.items()
+                 if not k.startswith("_") and k not in ("score", "source_count", "id", "published", "comments")}
+        merged[url] = clean
 
     kept = [a for a in merged.values() if _parse_ist(a.get("raw_time", "")) >= cutoff]
-    kept.sort(key=lambda a: _parse_ist(a.get("raw_time", "")), reverse=True)
-    kept = kept[:MAX_PER_FEED]
+    kept = rank_and_diversify(kept, MAX_PER_FEED)
 
     for a in kept:
         a["id"] = hashlib.md5(a["url"].encode("utf-8")).hexdigest()[:12]

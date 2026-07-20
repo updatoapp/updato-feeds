@@ -69,7 +69,7 @@ jobs:
           aws s3 sync feeds/ "s3://${BUCKET}/feeds/" \
             --endpoint-url "https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com" \
             --content-type "application/gzip" \
-            --cache-control "public, max-age=900" \
+            --cache-control "public, max-age=120" \
             --exclude "*" --include "*.json.gz"
 
       - name: Commit & push updated feeds

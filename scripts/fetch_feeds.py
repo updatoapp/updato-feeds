@@ -413,6 +413,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         pub_time = entry["published_time"]
         raw_time = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
 
+        categories = extract_categories_from_url(url)
         is_ws = bool(
             entry.get("from_webstory_sitemap")
             or _is_webstory({"url": url, "categories": categories})

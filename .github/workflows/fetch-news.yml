@@ -41,7 +41,7 @@ jobs:
         env:
           RECENT_MINUTES: "90"
           MAX_PER_SITEMAP: "50"
-          MAX_PER_FEED: "500"
+          MAX_PER_FEED: "2000"
           RETENTION_DAYS: "7"
           MAX_WORKERS: "16"
           # Hard-drop these categories from the swipe feed (comma list).

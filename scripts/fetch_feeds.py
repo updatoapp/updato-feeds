@@ -53,7 +53,7 @@ IST = timezone(timedelta(hours=5, minutes=30))
 RECENT_MINUTES = int(os.getenv("RECENT_MINUTES", "90"))
 MAX_PER_SITEMAP = int(os.getenv("MAX_PER_SITEMAP", "50"))
 RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "7"))
-MAX_PER_FEED = int(os.getenv("MAX_PER_FEED", "500"))
+MAX_PER_FEED = int(os.getenv("MAX_PER_FEED", "2000"))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
 # Parallelism for network-bound sitemap + article fetching.
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "16"))

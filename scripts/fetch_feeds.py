@@ -387,6 +387,48 @@ def _decode_html(res: requests.Response) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
+def _parse_int(value: object) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _dims_from_image_url(image_url: str | None) -> tuple[int, int] | None:
+    """Extract width/height from CDN query strings like width=1200&height=675."""
+    if not image_url:
+        return None
+    lower = image_url.lower()
+    w_m = re.search(r"(?:[?&]|[,/])width[=:_-]?(\d{2,5})", lower)
+    h_m = re.search(r"(?:[?&]|[,/])height[=:_-]?(\d{2,5})", lower)
+    if not w_m or not h_m:
+        return None
+    w, h = _parse_int(w_m.group(1)), _parse_int(h_m.group(1))
+    if not w or not h or w <= 0 or h <= 0:
+        return None
+    return w, h
+
+
+def _detect_image_vertical(image_url: str | None, soup: BeautifulSoup) -> bool | None:
+    """Return True/False when dimensions are known; None if unknown."""
+
+    def og_int(prop: str) -> int | None:
+        tag = soup.find("meta", property=prop)
+        if not tag or not tag.get("content"):
+            return None
+        return _parse_int(tag["content"])
+
+    w, h = og_int("og:image:width"), og_int("og:image:height")
+    if w and h:
+        return h > w
+    dims = _dims_from_image_url(image_url)
+    if dims:
+        return dims[1] > dims[0]
+    return None
+
+
 def scrape_article(entry: dict, lang: str) -> dict | None:
     url = entry["url"]
     try:
@@ -418,8 +460,21 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
             entry.get("from_webstory_sitemap")
             or _is_webstory({"url": url, "categories": categories})
         )
-        if is_ws and not any(str(c).lower() == "webstories" for c in categories):
+
+        # Portrait vs landscape from OG dims / image URL (not merely "is webstory").
+        detected = _detect_image_vertical(image_url, soup)
+        if detected is not None:
+            is_vertical = detected
+        else:
+            # Unknown dims: real AMP web stories are usually portrait; else not.
+            is_vertical = bool(is_ws)
+
+        # Only vertical cards get the webstories tag; landscape → secondary/misc.
+        categories = [c for c in categories if str(c).lower() != "webstories"]
+        if is_vertical and is_ws:
             categories = list(categories) + ["webstories"]
+        elif not categories:
+            categories = ["misc"]
 
         return {
             "url": url,
@@ -428,8 +483,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
             "image_url": image_url,
             "dominant_color": DEFAULT_DOMINANT_COLOR,
             "text_color": DEFAULT_TEXT_COLOR,
-            # Old server marked AMP/web stories vertical for the swipe UI.
-            "is_vertical": is_ws,
+            "is_vertical": is_vertical,
             "lang": lang,
             "categories": categories,
             "raw_time": raw_time,

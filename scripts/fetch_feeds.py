@@ -26,6 +26,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
@@ -34,6 +35,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
+from PIL import Image
 
 import sys
 
@@ -61,6 +63,13 @@ MAX_WORKERS = int(os.getenv("MAX_WORKERS", "16"))
 WEBSTORY_RECENT_HOURS = float(
     os.getenv("WEBSTORY_RECENT_HOURS", str(RETENTION_DAYS * 24))
 )
+# Dominant-color extraction (tiny download + resize). Disable with COLOR_EXTRACT=0.
+COLOR_EXTRACT = os.getenv("COLOR_EXTRACT", "1") != "0"
+COLOR_DOWNLOAD_MAX_BYTES = int(os.getenv("COLOR_DOWNLOAD_MAX_BYTES", "65536"))
+COLOR_SAMPLE_SIZE = int(os.getenv("COLOR_SAMPLE_SIZE", "48"))
+COLOR_WORKERS = int(os.getenv("COLOR_WORKERS", "8"))
+# Per-language cap for backfilling colors on existing default-gray articles.
+COLOR_BACKFILL_MAX = int(os.getenv("COLOR_BACKFILL_MAX", "120"))
 
 # Categories / title keywords to hard-drop from the feed. Daily राशिफल is
 # published by many Hindi outlets at once, so corroboration would otherwise
@@ -227,10 +236,206 @@ def extract_categories_from_url(url: str) -> list[str]:
 
 
 # --------------------------------------------------------------------------- #
-# Static image defaults (per-image downloading/analysis was removed for speed)
+# Dominant color (lightweight image sample for card gradients)
 # --------------------------------------------------------------------------- #
 DEFAULT_DOMINANT_COLOR = "#444444"
 DEFAULT_TEXT_COLOR = "#FFFFFF"  # readable on the dark default background
+
+
+def _is_default_color(hex_color: str | None) -> bool:
+    if not hex_color:
+        return True
+    return hex_color.strip().lower() in ("", DEFAULT_DOMINANT_COLOR.lower())
+
+
+def _contrast_text_color(r: int, g: int, b: int) -> str:
+    # Match app luminance threshold (~160 on 0–255).
+    luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return "#000000" if luminance > 160 else "#FFFFFF"
+
+
+def _is_near_neutral(r: int, g: int, b: int) -> bool:
+    """Skip near-white / near-black / pure gray — usually not useful for UI."""
+    if r > 240 and g > 240 and b > 240:
+        return True
+    if r < 20 and g < 20 and b < 20:
+        return True
+    if abs(r - g) < 12 and abs(g - b) < 12 and abs(r - b) < 12:
+        # Flat gray midtones look like the old default.
+        if 40 <= r <= 200:
+            return True
+    return False
+
+
+def extract_dominant_color(image_url: str | None) -> tuple[str, str]:
+    """Download a small prefix of the image and pick a palette color.
+
+    Returns (dominant_hex, text_hex). Falls back to defaults on any failure.
+    """
+    if not COLOR_EXTRACT or not image_url or not str(image_url).startswith("http"):
+        return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+    try:
+        headers = {
+            **HEADERS,
+            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        }
+        with requests.get(
+            image_url,
+            timeout=min(REQUEST_TIMEOUT, 8),
+            headers=headers,
+            stream=True,
+        ) as res:
+            if res.status_code != 200:
+                return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+            chunks: list[bytes] = []
+            total = 0
+            for chunk in res.iter_content(8192):
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                total += len(chunk)
+                if total >= COLOR_DOWNLOAD_MAX_BYTES:
+                    break
+        data = b"".join(chunks)
+        if len(data) < 64:
+            return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+
+        img = Image.open(BytesIO(data))
+        img = img.convert("RGB")
+        img.thumbnail((COLOR_SAMPLE_SIZE, COLOR_SAMPLE_SIZE))
+
+        # Median-cut palette: more "dominant" than a muddy average.
+        n_colors = 6
+        quantized = img.quantize(colors=n_colors, method=Image.Quantize.MEDIANCUT)
+        palette = quantized.getpalette() or []
+        counts: dict[int, int] = {}
+        for px in quantized.getdata():
+            counts[px] = counts.get(px, 0) + 1
+
+        candidates: list[tuple[int, int, int, int]] = []
+        for idx, count in counts.items():
+            base = idx * 3
+            if base + 2 >= len(palette):
+                continue
+            r, g, b = palette[base], palette[base + 1], palette[base + 2]
+            candidates.append((count, r, g, b))
+        candidates.sort(reverse=True)
+
+        chosen = None
+        for count, r, g, b in candidates:
+            if _is_near_neutral(r, g, b) and len(candidates) > 1:
+                continue
+            chosen = (r, g, b)
+            break
+        if chosen is None and candidates:
+            _, r, g, b = candidates[0]
+            chosen = (r, g, b)
+        if chosen is None:
+            return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+
+        r, g, b = chosen
+        hex_color = f"#{r:02x}{g:02x}{b:02x}"
+        return hex_color, _contrast_text_color(r, g, b)
+    except Exception:
+        return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+
+
+def load_color_cache() -> dict[str, tuple[str, str]]:
+    """image_url -> (dominant_color, text_color) from existing feeds."""
+    cache: dict[str, tuple[str, str]] = {}
+    for path in FEEDS_DIR.glob("feed_*.json.gz"):
+        lang = path.name[len("feed_") : -len(".json.gz")]
+        for art in load_existing_feed(lang):
+            img = art.get("image_url")
+            dc = art.get("dominant_color")
+            if not img or _is_default_color(dc):
+                continue
+            tc = art.get("text_color") or DEFAULT_TEXT_COLOR
+            cache[str(img)] = (str(dc), str(tc))
+    return cache
+
+
+def apply_dominant_colors(
+    articles: list[dict],
+    cache: dict[str, tuple[str, str]] | None = None,
+    *,
+    limit: int | None = None,
+) -> dict[str, tuple[str, str]]:
+    """Fill dominant_color / text_color for articles still on the gray default.
+
+    Reuses ``cache`` (mutated with new extractions). Only fetches unique image
+    URLs, capped by ``limit`` when set.
+    """
+    if not COLOR_EXTRACT or not articles:
+        return cache or {}
+    cache = dict(cache or {})
+
+    # Apply cached colors first.
+    need_urls: list[str] = []
+    seen_need: set[str] = set()
+    for art in articles:
+        img = art.get("image_url")
+        if not img or not str(img).startswith("http"):
+            continue
+        img = str(img)
+        if img in cache:
+            art["dominant_color"], art["text_color"] = cache[img]
+            continue
+        if not _is_default_color(art.get("dominant_color")):
+            cache[img] = (
+                str(art["dominant_color"]),
+                str(art.get("text_color") or DEFAULT_TEXT_COLOR),
+            )
+            continue
+        if img not in seen_need:
+            seen_need.add(img)
+            need_urls.append(img)
+
+    if limit is not None:
+        need_urls = need_urls[: max(0, limit)]
+
+    if not need_urls:
+        return cache
+
+    print(f"[..] extracting dominant colors for {len(need_urls)} images "
+          f"({COLOR_WORKERS} workers)")
+    extracted = 0
+    with ThreadPoolExecutor(max_workers=max(1, COLOR_WORKERS)) as pool:
+        futures = {pool.submit(extract_dominant_color, url): url for url in need_urls}
+        for fut in as_completed(futures):
+            url = futures[fut]
+            try:
+                dc, tc = fut.result()
+            except Exception:
+                dc, tc = DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+            cache[url] = (dc, tc)
+            if not _is_default_color(dc):
+                extracted += 1
+
+    for art in articles:
+        img = art.get("image_url")
+        if img and str(img) in cache:
+            art["dominant_color"], art["text_color"] = cache[str(img)]
+
+    print(f"    colors: {extracted}/{len(need_urls)} non-default")
+    return cache
+
+
+def _merge_article(existing: dict | None, incoming: dict) -> dict:
+    """Merge feed rows; keep a real dominant color if the new scrape is default."""
+    if not existing:
+        return {k: v for k, v in incoming.items()
+                if not str(k).startswith("_")
+                and k not in ("score", "source_count", "id", "published", "comments")}
+    merged = {**existing, **incoming}
+    old_dc = existing.get("dominant_color")
+    new_dc = incoming.get("dominant_color")
+    if _is_default_color(new_dc) and not _is_default_color(old_dc):
+        merged["dominant_color"] = old_dc
+        merged["text_color"] = existing.get("text_color") or merged.get("text_color")
+    return {k: v for k, v in merged.items()
+            if not str(k).startswith("_")
+            and k not in ("score", "source_count", "id", "published", "comments")}
 
 
 # --------------------------------------------------------------------------- #
@@ -840,7 +1045,11 @@ def rank_and_diversify(articles: list[dict], limit: int) -> list[dict]:
     return ordered
 
 
-def write_feed(lang: str, articles: list[dict]) -> int:
+def write_feed(
+    lang: str,
+    articles: list[dict],
+    color_cache: dict[str, tuple[str, str]] | None = None,
+) -> int:
     cutoff = datetime.now(IST) - timedelta(days=RETENTION_DAYS)
 
     merged: dict[str, dict] = {}
@@ -848,12 +1057,13 @@ def write_feed(lang: str, articles: list[dict]) -> int:
         url = art.get("url")
         if not url:
             continue
-        # Drop ranking helpers / stale scores from previous runs before re-rank.
-        clean = {k: v for k, v in {**merged.get(url, {}), **art}.items()
-                 if not k.startswith("_") and k not in ("score", "source_count", "id", "published", "comments")}
-        merged[url] = clean
+        merged[url] = _merge_article(merged.get(url), art)
 
     kept = [a for a in merged.values() if _parse_ist(a.get("raw_time", "")) >= cutoff]
+
+    # Backfill colors for articles still on the gray default (capped per run).
+    apply_dominant_colors(kept, color_cache, limit=COLOR_BACKFILL_MAX)
+
     kept = rank_and_diversify(kept, MAX_PER_FEED)
 
     for a in kept:
@@ -884,6 +1094,10 @@ def main() -> None:
     if not sitemaps:
         print("[error] nothing to do: no sitemaps")
         return
+
+    color_cache = load_color_cache()
+    if color_cache:
+        print(f"[ok] color cache: {len(color_cache)} image URLs")
 
     sources: list[tuple[str, str]] = []
     for source in sitemaps:
@@ -924,17 +1138,23 @@ def main() -> None:
             if done % 50 == 0 or done == len(tasks):
                 print(f"    scraped {done}/{len(tasks)}")
 
+    # 3) Dominant colors for new scrapes (reuse cache; extract only unknowns).
+    all_new = [a for arts in by_lang.values() for a in arts]
+    if all_new:
+        color_cache = apply_dominant_colors(all_new, color_cache)
+
     if not by_lang:
         print("[done] no new acceptable articles this run")
-        # Still rewrite existing feeds so relative timestamps stay fresh.
+        # Still rewrite existing feeds so relative timestamps stay fresh
+        # (and backfill a batch of missing colors).
         for path in FEEDS_DIR.glob("feed_*.json.gz"):
             lang = path.name[len("feed_"):-len(".json.gz")]
-            write_feed(lang, [])
+            write_feed(lang, [], color_cache)
         return
 
     total = 0
     for lang, arts in by_lang.items():
-        count = write_feed(lang, arts)
+        count = write_feed(lang, arts, color_cache)
         total += len(arts)
         print(f"[ok] feed_{lang}.json -> {count} articles ({len(arts)} new this run)")
 

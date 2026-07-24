@@ -65,11 +65,11 @@ WEBSTORY_RECENT_HOURS = float(
 )
 # Dominant-color extraction (tiny download + resize). Disable with COLOR_EXTRACT=0.
 COLOR_EXTRACT = os.getenv("COLOR_EXTRACT", "1") != "0"
-COLOR_DOWNLOAD_MAX_BYTES = int(os.getenv("COLOR_DOWNLOAD_MAX_BYTES", "65536"))
-COLOR_SAMPLE_SIZE = int(os.getenv("COLOR_SAMPLE_SIZE", "48"))
-COLOR_WORKERS = int(os.getenv("COLOR_WORKERS", "8"))
+COLOR_DOWNLOAD_MAX_BYTES = int(os.getenv("COLOR_DOWNLOAD_MAX_BYTES", "98304"))
+COLOR_SAMPLE_SIZE = int(os.getenv("COLOR_SAMPLE_SIZE", "64"))
+COLOR_WORKERS = int(os.getenv("COLOR_WORKERS", "10"))
 # Per-language cap for backfilling colors on existing default-gray articles.
-COLOR_BACKFILL_MAX = int(os.getenv("COLOR_BACKFILL_MAX", "120"))
+COLOR_BACKFILL_MAX = int(os.getenv("COLOR_BACKFILL_MAX", "350"))
 
 # Categories / title keywords to hard-drop from the feed. Daily राशिफल is
 # published by many Hindi outlets at once, so corroboration would otherwise
@@ -248,27 +248,74 @@ def _is_default_color(hex_color: str | None) -> bool:
     return hex_color.strip().lower() in ("", DEFAULT_DOMINANT_COLOR.lower())
 
 
+def _parse_rgb(hex_color: str) -> tuple[int, int, int] | None:
+    try:
+        h = hex_color.strip().lstrip("#")
+        if len(h) != 6:
+            return None
+        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    except Exception:
+        return None
+
+
+def _luminance(r: int, g: int, b: int) -> float:
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def _chroma(r: int, g: int, b: int) -> int:
+    return max(r, g, b) - min(r, g, b)
+
+
 def _contrast_text_color(r: int, g: int, b: int) -> str:
     # Match app luminance threshold (~160 on 0–255).
-    luminance = 0.299 * r + 0.587 * g + 0.114 * b
-    return "#000000" if luminance > 160 else "#FFFFFF"
+    return "#000000" if _luminance(r, g, b) > 160 else "#FFFFFF"
 
 
-def _is_near_neutral(r: int, g: int, b: int) -> bool:
-    """Skip near-white / near-black / pure gray — usually not useful for UI."""
-    if r > 240 and g > 240 and b > 240:
+def _needs_color_refresh(hex_color: str | None) -> bool:
+    """True if missing, default gray, near-black/white, or flat gray (looks B&W)."""
+    if _is_default_color(hex_color):
         return True
-    if r < 20 and g < 20 and b < 20:
+    rgb = _parse_rgb(str(hex_color))
+    if not rgb:
         return True
-    if abs(r - g) < 12 and abs(g - b) < 12 and abs(r - b) < 12:
-        # Flat gray midtones look like the old default.
-        if 40 <= r <= 200:
-            return True
+    r, g, b = rgb
+    lum = _luminance(r, g, b)
+    if lum < 50 or lum > 230:
+        return True
+    if _chroma(r, g, b) < 18:
+        return True
     return False
 
 
+def _for_card_ui(r: int, g: int, b: int) -> tuple[int, int, int]:
+    """Lift dark / mute extremes so card gradients read as a tint, not B&W."""
+    lum = _luminance(r, g, b)
+    # Pull very dark colors up toward a mid tone while keeping hue.
+    if lum < 85:
+        target = 110.0
+        scale = target / max(lum, 1.0)
+        r = min(255, int(r * scale))
+        g = min(255, int(g * scale))
+        b = min(255, int(b * scale))
+        # Blend a little toward soft gray-blue so it never looks pure black.
+        r = int(r * 0.82 + 55)
+        g = int(g * 0.82 + 60)
+        b = int(b * 0.82 + 70)
+    elif lum > 210:
+        r = int(r * 0.75 + 30)
+        g = int(g * 0.75 + 30)
+        b = int(b * 0.75 + 35)
+    # Mild saturation bump for muddy photos.
+    avg = (r + g + b) / 3.0
+    if _chroma(r, g, b) < 40:
+        r = int(max(0, min(255, avg + (r - avg) * 1.45)))
+        g = int(max(0, min(255, avg + (g - avg) * 1.45)))
+        b = int(max(0, min(255, avg + (b - avg) * 1.45)))
+    return r, g, b
+
+
 def extract_dominant_color(image_url: str | None) -> tuple[str, str]:
-    """Download a small prefix of the image and pick a palette color.
+    """Download a small prefix of the image and pick a colorful UI tint.
 
     Returns (dominant_hex, text_hex). Falls back to defaults on any failure.
     """
@@ -281,7 +328,7 @@ def extract_dominant_color(image_url: str | None) -> tuple[str, str]:
         }
         with requests.get(
             image_url,
-            timeout=min(REQUEST_TIMEOUT, 8),
+            timeout=min(REQUEST_TIMEOUT, 10),
             headers=headers,
             stream=True,
         ) as res:
@@ -304,36 +351,49 @@ def extract_dominant_color(image_url: str | None) -> tuple[str, str]:
         img = img.convert("RGB")
         img.thumbnail((COLOR_SAMPLE_SIZE, COLOR_SAMPLE_SIZE))
 
-        # Median-cut palette: more "dominant" than a muddy average.
-        n_colors = 6
-        quantized = img.quantize(colors=n_colors, method=Image.Quantize.MEDIANCUT)
-        palette = quantized.getpalette() or []
-        counts: dict[int, int] = {}
-        for px in quantized.getdata():
-            counts[px] = counts.get(px, 0) + 1
-
-        candidates: list[tuple[int, int, int, int]] = []
-        for idx, count in counts.items():
-            base = idx * 3
-            if base + 2 >= len(palette):
+        # Prefer chromatic mid-tones over muddy average / near-black.
+        scored: list[tuple[float, int, int, int]] = []
+        for r, g, b in img.getdata():
+            ch = _chroma(r, g, b)
+            lum = _luminance(r, g, b)
+            if ch < 22:
                 continue
-            r, g, b = palette[base], palette[base + 1], palette[base + 2]
-            candidates.append((count, r, g, b))
-        candidates.sort(reverse=True)
-
-        chosen = None
-        for count, r, g, b in candidates:
-            if _is_near_neutral(r, g, b) and len(candidates) > 1:
+            if lum < 35 or lum > 225:
                 continue
-            chosen = (r, g, b)
-            break
-        if chosen is None and candidates:
+            # Weight: chroma first, prefer mid luminance.
+            mid = 1.0 - abs(lum - 120) / 120.0
+            scored.append((ch * (0.55 + 0.45 * mid), r, g, b))
+
+        if scored:
+            scored.sort(reverse=True)
+            top = scored[: max(8, len(scored) // 5)]
+            r = sum(x[1] for x in top) // len(top)
+            g = sum(x[2] for x in top) // len(top)
+            b = sum(x[3] for x in top) // len(top)
+        else:
+            # Fallback: median-cut palette, skip neutrals.
+            quantized = img.quantize(colors=8, method=Image.Quantize.MEDIANCUT)
+            palette = quantized.getpalette() or []
+            counts: dict[int, int] = {}
+            for px in quantized.getdata():
+                counts[px] = counts.get(px, 0) + 1
+            candidates: list[tuple[float, int, int, int]] = []
+            for idx, count in counts.items():
+                base = idx * 3
+                if base + 2 >= len(palette):
+                    continue
+                r, g, b = palette[base], palette[base + 1], palette[base + 2]
+                ch = _chroma(r, g, b)
+                lum = _luminance(r, g, b)
+                if lum < 30 or lum > 230:
+                    continue
+                candidates.append((count * (1 + ch / 64.0), r, g, b))
+            if not candidates:
+                return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
+            candidates.sort(reverse=True)
             _, r, g, b = candidates[0]
-            chosen = (r, g, b)
-        if chosen is None:
-            return DEFAULT_DOMINANT_COLOR, DEFAULT_TEXT_COLOR
 
-        r, g, b = chosen
+        r, g, b = _for_card_ui(r, g, b)
         hex_color = f"#{r:02x}{g:02x}{b:02x}"
         return hex_color, _contrast_text_color(r, g, b)
     except Exception:
@@ -348,7 +408,7 @@ def load_color_cache() -> dict[str, tuple[str, str]]:
         for art in load_existing_feed(lang):
             img = art.get("image_url")
             dc = art.get("dominant_color")
-            if not img or _is_default_color(dc):
+            if not img or _needs_color_refresh(dc):
                 continue
             tc = art.get("text_color") or DEFAULT_TEXT_COLOR
             cache[str(img)] = (str(dc), str(tc))
@@ -361,7 +421,7 @@ def apply_dominant_colors(
     *,
     limit: int | None = None,
 ) -> dict[str, tuple[str, str]]:
-    """Fill dominant_color / text_color for articles still on the gray default.
+    """Fill dominant_color / text_color for articles still on gray / near-B&W.
 
     Reuses ``cache`` (mutated with new extractions). Only fetches unique image
     URLs, capped by ``limit`` when set.
@@ -381,7 +441,7 @@ def apply_dominant_colors(
         if img in cache:
             art["dominant_color"], art["text_color"] = cache[img]
             continue
-        if not _is_default_color(art.get("dominant_color")):
+        if not _needs_color_refresh(art.get("dominant_color")):
             cache[img] = (
                 str(art["dominant_color"]),
                 str(art.get("text_color") or DEFAULT_TEXT_COLOR),
@@ -422,7 +482,7 @@ def apply_dominant_colors(
 
 
 def _merge_article(existing: dict | None, incoming: dict) -> dict:
-    """Merge feed rows; keep a real dominant color if the new scrape is default."""
+    """Merge feed rows; keep a good dominant color if the new scrape is weak."""
     if not existing:
         return {k: v for k, v in incoming.items()
                 if not str(k).startswith("_")
@@ -430,7 +490,7 @@ def _merge_article(existing: dict | None, incoming: dict) -> dict:
     merged = {**existing, **incoming}
     old_dc = existing.get("dominant_color")
     new_dc = incoming.get("dominant_color")
-    if _is_default_color(new_dc) and not _is_default_color(old_dc):
+    if _needs_color_refresh(new_dc) and not _needs_color_refresh(old_dc):
         merged["dominant_color"] = old_dc
         merged["text_color"] = existing.get("text_color") or merged.get("text_color")
     return {k: v for k, v in merged.items()

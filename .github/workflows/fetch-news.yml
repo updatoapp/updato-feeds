@@ -2,12 +2,15 @@ name: Fetch news feeds
 
 on:
   schedule:
-    # Target ~30-min refresh at :25 and :55 UTC (= :55 and :25 IST). Deliberately
-    # OFF minute 0 — GitHub deprioritizes/drops top-of-hour scheduled runs. We
-    # over-schedule because GitHub's cron is best-effort and drops some ticks;
-    # the fetcher is idempotent (90-min look-back + merge/dedupe) so extra runs
-    # are harmless.
-    - cron: "25,55 * * * *"
+    # ~30-min refresh, quiet overnight IST (23:00–04:00).
+    # IST = UTC+5:30. Allowed window ≈ 04:25–22:55 IST:
+    #   22:55 UTC → 04:25 IST (first after quiet)
+    #   23:25–16:55 UTC → 04:55–22:25 IST
+    #   17:25 UTC → 22:55 IST (last before 23:00 IST)
+    # Deliberately OFF minute 0 — GitHub deprioritizes top-of-hour crons.
+    - cron: "55 22 * * *"
+    - cron: "25,55 0-16,23 * * *"
+    - cron: "25 17 * * *"
   workflow_dispatch: {}
 
 # Allow the job to push the regenerated feed files back to the repo.

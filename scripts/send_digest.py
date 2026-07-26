@@ -22,6 +22,8 @@ Everything is env-overridable so the same script runs locally and in CI:
   DRY_RUN            "1" to build + print but NOT send
   SERVICE_ACCOUNT_FILE   path to key json (default: service_account.json)
   FCM_SERVICE_ACCOUNT    raw key json (used if the file is absent)
+  R2_PUBLIC_BASE / R2_*  bake headline into image and host on Cloudflare R2
+  BAKE_NOTIF_IMAGE       "0" to disable baking (default: on when R2 is configured)
 """
 
 from __future__ import annotations
@@ -32,11 +34,17 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from urllib.parse import urlparse
+
+# Allow `python scripts/send_digest.py` from the repo root.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import requests
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
+
+from notif_image import bake_and_upload, cleanup_old_notif_images, r2_configured
 
 # --------------------------------------------------------------------------- #
 # Configuration
@@ -48,9 +56,23 @@ TOP_N = 1
 FEED_BASE_URL = os.getenv("FEED_BASE_URL", "https://updatoapp.github.io/updato-feeds/feeds").rstrip("/")
 DRY_RUN = os.getenv("DRY_RUN", "").strip() in ("1", "true", "yes")
 SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE", "service_account.json")
+_BAKE_ENV = os.getenv("BAKE_NOTIF_IMAGE", "").strip().lower()
+BAKE_NOTIF_IMAGE = (
+    True if _BAKE_ENV in ("1", "true", "yes")
+    else False if _BAKE_ENV in ("0", "false", "no")
+    else None  # auto: on when R2 is configured
+)
 
 FCM_SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"]
 REQUEST_TIMEOUT = 15
+
+
+def _should_bake() -> bool:
+    if BAKE_NOTIF_IMAGE is False:
+        return False
+    if BAKE_NOTIF_IMAGE is True:
+        return True
+    return r2_configured() or DRY_RUN
 
 
 def _env_int(name: str, default: int) -> int:
@@ -479,13 +501,22 @@ def send_to_topic(access_token: str, project_id: str, topic: str,
 
 def main() -> None:
     slot = resolve_slot()
-    print(f"[..] slot={slot} langs={LANGS} top_n={TOP_N} dry_run={DRY_RUN}")
+    bake = _should_bake()
+    print(
+        f"[..] slot={slot} langs={LANGS} top_n={TOP_N} dry_run={DRY_RUN} "
+        f"bake_image={bake} r2={r2_configured()}"
+    )
 
-    credentials = load_credentials()
-    credentials.refresh(Request())
-    project_id = credentials.project_id
-    access_token = credentials.token
-    print(f"[ok] authenticated project={project_id}")
+    access_token = None
+    project_id = None
+    if not DRY_RUN:
+        credentials = load_credentials()
+        credentials.refresh(Request())
+        project_id = credentials.project_id
+        access_token = credentials.token
+        print(f"[ok] authenticated project={project_id}")
+    else:
+        print("[..] dry-run: skipping FCM auth")
 
     mode = "importance" if RANKING else "recency"
     print(f"[..] ranking={mode} window={RANK_WINDOW_HOURS}h min_sources={MIN_SOURCES}")
@@ -508,16 +539,30 @@ def main() -> None:
         title = (article.get("title") or "").strip()
         description = re.sub(r"\s+", " ", (article.get("description") or "").strip())
         body = description[:220].rstrip() if description else slot_title
-        image_url = (article.get("image_url") or "").strip() or None
+        raw_image = (article.get("image_url") or "").strip() or None
         deep_link = (article.get("url") or "").strip() or "explore"
         topic = f"news_{lang}"
+
+        image_url = raw_image
+        if bake and raw_image:
+            image_url = bake_and_upload(
+                raw_image,
+                title,
+                lang,
+                slot,
+                dry_run=DRY_RUN,
+                preview_dir=Path("notif_previews"),
+            )
 
         if DRY_RUN:
             print(f"\n----- DRY RUN [{topic}] slot={slot} -----\n{title}")
             src, sc = article.get("_sources"), article.get("_score")
             tag = f"  [sources={src}, score={sc}]" if src is not None else ""
             print(f"  \u2022 {title}{tag}")
-            print(f"body={body}\nimage={image_url}\ndeep_link={deep_link}\n")
+            print(
+                f"body={body}\nraw_image={raw_image}\n"
+                f"image={image_url}\ndeep_link={deep_link}\n"
+            )
             continue
 
         status, text = send_to_topic(
@@ -528,6 +573,9 @@ def main() -> None:
             print(f"[ok] {topic}: sent single story -> {deep_link}")
         else:
             print(f"[error] {topic}: HTTP {status} -> {text}")
+
+    if bake and not DRY_RUN:
+        cleanup_old_notif_images()
 
     print(f"[done] slot={slot} sent={sent}/{len(LANGS)}")
     # Fail the CI job if nothing went out (so a broken key/feed is visible).

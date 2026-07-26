@@ -32,7 +32,7 @@ on:
         type: boolean
         default: false
 
-# The digest send only reads the repo; no push needed.
+# The digest send reads the repo and uploads baked images to R2 (no git push).
 permissions:
   contents: read
 
@@ -43,7 +43,7 @@ concurrency:
 jobs:
   digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,6 +77,11 @@ jobs:
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
           SERVICE_ACCOUNT_FILE: service_account.json
           R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BAKE_NOTIF_IMAGE: "1"
         run: |
           # Fall back to the default language list when the input is blank.
           if [ -z "$LANGS" ]; then unset LANGS; fi
@@ -85,6 +90,15 @@ jobs:
             export FEED_BASE_URL="${R2_PUBLIC_BASE%/}/feeds"
           fi
           python scripts/send_digest.py
+
+      - name: Upload baked previews (dry-run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: notif-previews
+          path: notif_previews/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Clean up key
         if: always()

@@ -462,10 +462,28 @@ def select_articles(all_articles: list[dict], n: int) -> list[dict]:
 
 def send_to_topic(access_token: str, project_id: str, topic: str,
                   title: str, body: str, image_url: str | None,
-                  deep_link: str | None) -> tuple[int, str]:
-    notification = {"title": title, "body": body}
+                  deep_link: str | None,
+                  *,
+                  image_only: bool = False) -> tuple[int, str]:
+    """Send an FCM topic message.
+
+    When ``image_only`` is True the headline is already painted into
+    ``image_url``, so title/body are omitted from the visible notification
+    chrome (Inshorts-style). They remain in ``data`` for the app/debug.
+    """
+    if image_only and image_url:
+        # Image carries the headline — no separate title/body above it.
+        notification: dict = {"image": image_url}
+        apns_alert: dict = {}
+    else:
+        notification = {"title": title, "body": body}
+        if image_url:
+            notification["image"] = image_url
+        apns_alert = {"title": title, "body": body}
+
+    android_notification: dict = {"click_action": "FLUTTER_NOTIFICATION_CLICK"}
     if image_url:
-        notification["image"] = image_url
+        android_notification["image"] = image_url
 
     message: dict = {
         "topic": topic,
@@ -475,13 +493,17 @@ def send_to_topic(access_token: str, project_id: str, topic: str,
             "click_action": "FLUTTER_NOTIFICATION_CLICK",
             "deep_link": deep_link or "explore",
             "article_url": deep_link or "",
+            "title": title or "",
+            "body": body or "",
+            "image": image_url or "",
+            "image_only": "1" if (image_only and image_url) else "0",
         },
         "android": {
             "priority": "high",
-            "notification": {"click_action": "FLUTTER_NOTIFICATION_CLICK"},
+            "notification": android_notification,
         },
         "apns": {
-            "payload": {"aps": {"mutable-content": 1, "alert": {"title": title, "body": body}}},
+            "payload": {"aps": {"mutable-content": 1, "alert": apns_alert}},
         },
     }
     if image_url:
@@ -544,8 +566,9 @@ def main() -> None:
         topic = f"news_{lang}"
 
         image_url = raw_image
+        image_only = False
         if bake and raw_image:
-            image_url = bake_and_upload(
+            baked = bake_and_upload(
                 raw_image,
                 title,
                 lang,
@@ -553,6 +576,10 @@ def main() -> None:
                 dry_run=DRY_RUN,
                 preview_dir=Path("notif_previews"),
             )
+            if baked:
+                image_url = baked
+                # file:// previews (dry-run) and R2 uploads both carry the headline.
+                image_only = True
 
         if DRY_RUN:
             print(f"\n----- DRY RUN [{topic}] slot={slot} -----\n{title}")
@@ -561,16 +588,25 @@ def main() -> None:
             print(f"  \u2022 {title}{tag}")
             print(
                 f"body={body}\nraw_image={raw_image}\n"
-                f"image={image_url}\ndeep_link={deep_link}\n"
+                f"image={image_url}\nimage_only={image_only}\n"
+                f"deep_link={deep_link}\n"
             )
             continue
 
         status, text = send_to_topic(
-            access_token, project_id, topic, title, body, image_url, deep_link
+            access_token,
+            project_id,
+            topic,
+            title,
+            body,
+            image_url,
+            deep_link,
+            image_only=image_only,
         )
         if status == 200:
             sent += 1
-            print(f"[ok] {topic}: sent single story -> {deep_link}")
+            mode = "image-only" if image_only else "title+body"
+            print(f"[ok] {topic}: sent ({mode}) -> {deep_link}")
         else:
             print(f"[error] {topic}: HTTP {status} -> {text}")
 

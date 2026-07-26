@@ -1185,6 +1185,9 @@ def main() -> None:
     print(f"[..] scraping {len(tasks)} articles with {MAX_WORKERS} workers")
     by_lang: dict[str, list[dict]] = {}
     done = 0
+    scrape_ok = 0
+    scrape_fail = 0
+    rejected = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         futures = [pool.submit(scrape_article, entry, lang) for entry, lang in tasks]
         for fut in as_completed(futures):
@@ -1193,11 +1196,28 @@ def main() -> None:
                 article = fut.result()
             except Exception:
                 article = None
-            if article and is_acceptable(article):
+            if article is None:
+                scrape_fail += 1
+            elif is_acceptable(article):
+                scrape_ok += 1
                 by_lang.setdefault(article["lang"], []).append(article)
+            else:
+                scrape_fail += 1  # counted as fail for "got usable article"
+                rejected += 1
             if done % 50 == 0 or done == len(tasks):
                 print(f"    scraped {done}/{len(tasks)}")
 
+    total_attempted = len(tasks)
+    usable = scrape_ok
+    failed_or_rejected = scrape_fail
+    print(
+        f"[stats] scrape attempts={total_attempted} "
+        f"usable={usable} "
+        f"failed_or_rejected={failed_or_rejected} "
+        f"(of which banned/no-title={rejected}) "
+        f"success_rate="
+        f"{(100.0 * usable / total_attempted) if total_attempted else 0:.1f}%"
+    )
     # 3) Dominant colors for new scrapes (reuse cache; extract only unknowns).
     all_new = [a for arts in by_lang.values() for a in arts]
     if all_new:

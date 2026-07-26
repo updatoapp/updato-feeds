@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Serverless "Top stories" digest push for GitHub Actions.
+"""Serverless single-story push for GitHub Actions.
 
 For each supported language it:
   1. Downloads the committed GitHub Pages feed (feed_<lang>.json.gz),
-  2. Takes the top N newest headlines (the feed is already sorted newest-first),
-  3. Builds a localized, time-of-day digest (morning / afternoon / evening / night),
-  4. Sends it as an FCM notification to the topic ``news_<lang>`` via the
+  2. Selects the highest-ranked recent article,
+  3. Sends its headline, description/image and deep link as an FCM notification
+     to the topic ``news_<lang>`` via the
      FCM HTTP v1 API.
 
 No database, no server, no stored user tokens -- FCM topic fan-out handles
@@ -17,7 +17,7 @@ Everything is env-overridable so the same script runs locally and in CI:
 
   SLOT               morning|afternoon|evening|night|auto  (default: auto -> from IST clock)
   LANGS              comma list (default: en,hi,ta,bn,kn,te,ml)
-  TOP_N              headlines per digest (default: 5)
+  TOP_N              retained for compatibility; single-story mode always uses 1
   FEED_BASE_URL      default: https://updatoapp.github.io/updato-feeds/feeds
   DRY_RUN            "1" to build + print but NOT send
   SERVICE_ACCOUNT_FILE   path to key json (default: service_account.json)
@@ -44,7 +44,7 @@ from google.oauth2 import service_account
 IST = timezone(timedelta(hours=5, minutes=30))
 
 LANGS = [c.strip() for c in os.getenv("LANGS", "en,hi,ta,bn,kn,te,ml").split(",") if c.strip()]
-TOP_N = int(os.getenv("TOP_N", "5"))
+TOP_N = 1
 FEED_BASE_URL = os.getenv("FEED_BASE_URL", "https://updatoapp.github.io/updato-feeds/feeds").rstrip("/")
 DRY_RUN = os.getenv("DRY_RUN", "").strip() in ("1", "true", "yes")
 SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE", "service_account.json")
@@ -449,9 +449,10 @@ def send_to_topic(access_token: str, project_id: str, topic: str,
         "topic": topic,
         "notification": notification,
         "data": {
-            "type": "digest",
+            "type": "single_article",
             "click_action": "FLUTTER_NOTIFICATION_CLICK",
             "deep_link": deep_link or "explore",
+            "article_url": deep_link or "",
         },
         "android": {
             "priority": "high",
@@ -491,7 +492,7 @@ def main() -> None:
 
     sent = 0
     for lang in LANGS:
-        title = SLOT_TITLES[slot].get(lang) or SLOT_TITLES[slot]["en"]
+        slot_title = SLOT_TITLES[slot].get(lang) or SLOT_TITLES[slot]["en"]
         try:
             feed = fetch_feed(lang)
         except Exception as exc:
@@ -502,19 +503,21 @@ def main() -> None:
             print(f"[warn] {lang}: feed empty, skipping")
             continue
 
-        articles = select_articles(feed, TOP_N)
-        body = build_body(articles)
-        image_url = first_image(articles)
-        deep_link = (articles[0].get("url") or "").strip() or "explore"
+        articles = select_articles(feed, 1)
+        article = articles[0]
+        title = (article.get("title") or "").strip()
+        description = re.sub(r"\s+", " ", (article.get("description") or "").strip())
+        body = description[:220].rstrip() if description else slot_title
+        image_url = (article.get("image_url") or "").strip() or None
+        deep_link = (article.get("url") or "").strip() or "explore"
         topic = f"news_{lang}"
 
         if DRY_RUN:
             print(f"\n----- DRY RUN [{topic}] slot={slot} -----\n{title}")
-            for a in articles:
-                src, sc = a.get("_sources"), a.get("_score")
-                tag = f"  [sources={src}, score={sc}]" if src is not None else ""
-                print(f"  \u2022 {(a.get('title') or '').strip()}{tag}")
-            print(f"image={image_url}\n")
+            src, sc = article.get("_sources"), article.get("_score")
+            tag = f"  [sources={src}, score={sc}]" if src is not None else ""
+            print(f"  \u2022 {title}{tag}")
+            print(f"body={body}\nimage={image_url}\ndeep_link={deep_link}\n")
             continue
 
         status, text = send_to_topic(
@@ -522,7 +525,7 @@ def main() -> None:
         )
         if status == 200:
             sent += 1
-            print(f"[ok] {topic}: sent ({len(articles)} headlines)")
+            print(f"[ok] {topic}: sent single story -> {deep_link}")
         else:
             print(f"[error] {topic}: HTTP {status} -> {text}")
 

@@ -3,3 +3,4 @@ requests==2.32.3
 google-auth==2.35.0
 Pillow==11.1.0
 boto3==1.35.99
+fonttools==4.55.3

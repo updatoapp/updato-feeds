@@ -119,24 +119,119 @@ def _draw_bottom_gradient(base, start_ratio: float = 0.48) -> None:
     base.paste(composed.convert("RGB"))
 
 
-def _text_width(draw, text: str, font) -> int:
-    bbox = draw.textbbox((0, 0), text, font=font)
-    return bbox[2] - bbox[0]
+def _coverage(path: Path) -> frozenset[int]:
+    """Codepoints a TTF can actually render (script-only Noto builds omit Latin)."""
+    if path in _coverage_cache:
+        return _coverage_cache[path]
+    points: set[int] = set()
+    try:
+        from fontTools.ttLib import TTFont
+
+        with TTFont(str(path), fontNumber=0, lazy=True) as tt:
+            for table in tt["cmap"].tables:
+                points.update(table.cmap.keys())
+    except Exception as exc:
+        print(f"[warn] cmap read failed for {path.name}: {exc}")
+    result = frozenset(points)
+    _coverage_cache[path] = result
+    return result
 
 
-def _ellipsize(draw, text: str, font, max_width: int) -> str:
-    if _text_width(draw, text, font) <= max_width:
+class FontSet:
+    """A script font plus a Latin fallback, so mixed headlines never show tofu.
+
+    Noto's per-script builds (e.g. NotoSansDevanagari) carry no Latin letters,
+    so an English word inside a Hindi headline renders as boxes unless each run
+    is drawn with a font that covers it.
+    """
+
+    def __init__(self, primary, primary_cp, latin, latin_cp):
+        self.primary = primary
+        self.primary_cp = primary_cp
+        self.latin = latin
+        self.latin_cp = latin_cp
+
+    def _choose(self, ch: str, prefer_latin: bool):
+        cp = ord(ch)
+        if prefer_latin and self.latin is not None and cp in self.latin_cp:
+            return self.latin
+        if cp in self.primary_cp:
+            return self.primary
+        if self.latin is not None and cp in self.latin_cp:
+            return self.latin
+        return self.primary
+
+    def runs(self, text: str) -> list[tuple[str, object]]:
+        """Split ``text`` into (substring, font) runs, keeping scripts contiguous."""
+        out: list[list] = []
+        for token in re.split(r"(\s+)", text):
+            if not token:
+                continue
+            # Keep whole Latin tokens (ICC, T20, BJP-2024) in one font.
+            prefer_latin = bool(re.search(r"[A-Za-z]", token))
+            for ch in token:
+                font = self._choose(ch, prefer_latin)
+                if out and out[-1][1] is font:
+                    out[-1][0] += ch
+                else:
+                    out.append([ch, font])
+        return [(s, f) for s, f in out]
+
+    def metrics(self, text: str) -> tuple[int, int]:
+        """Max (ascent, descent) across the fonts used by ``text``."""
+        fonts = {f for _, f in self.runs(text)} or {self.primary}
+        ascent = descent = 0
+        for font in fonts:
+            a, d = font.getmetrics()
+            ascent = max(ascent, a)
+            descent = max(descent, d)
+        return ascent, descent
+
+
+_coverage_cache: dict[Path, frozenset[int]] = {}
+_shaping_checked = False
+
+
+def _warn_if_no_shaping() -> None:
+    """Indic matras only reorder correctly when Pillow ships Raqm/HarfBuzz."""
+    global _shaping_checked
+    if _shaping_checked:
+        return
+    _shaping_checked = True
+    try:
+        from PIL import features
+
+        if not features.check("raqm"):
+            print(
+                "[warn] Pillow has no Raqm/HarfBuzz — Indic text shaping will be "
+                "wrong (misplaced matras). Install a Pillow wheel with Raqm."
+            )
+    except Exception:
+        pass
+
+
+def _text_width(draw, text: str, fs: FontSet) -> float:
+    return sum(draw.textlength(run, font=font) for run, font in fs.runs(text))
+
+
+def _draw_runs(draw, x: float, baseline: float, text: str, fs: FontSet, fill) -> None:
+    for run, font in fs.runs(text):
+        draw.text((x, baseline), run, font=font, fill=fill, anchor="ls")
+        x += draw.textlength(run, font=font)
+
+
+def _ellipsize(draw, text: str, fs: FontSet, max_width: float) -> str:
+    if _text_width(draw, text, fs) <= max_width:
         return text
-    ell = "…"
     while text:
-        candidate = text.rstrip() + ell
-        if _text_width(draw, candidate, font) <= max_width:
+        candidate = text.rstrip() + "…"
+        if _text_width(draw, candidate, fs) <= max_width:
             return candidate
         text = text[:-1]
-    return ell
+    return "…"
 
 
-def _wrap_lines(text: str, font, draw, max_width: int, max_lines: int = 3) -> list[str]:
+def _wrap_lines(text: str, fs: FontSet, draw, max_width: float, max_lines: int = 3) -> list[str]:
     text = re.sub(r"\s+", " ", (text or "").strip())
     if not text:
         return []
@@ -148,7 +243,7 @@ def _wrap_lines(text: str, font, draw, max_width: int, max_lines: int = 3) -> li
     while i < len(words):
         word = words[i]
         trial = word if not current else f"{current} {word}"
-        if _text_width(draw, trial, font) <= max_width:
+        if _text_width(draw, trial, fs) <= max_width:
             current = trial
             i += 1
             continue
@@ -158,7 +253,7 @@ def _wrap_lines(text: str, font, draw, max_width: int, max_lines: int = 3) -> li
             if len(lines) >= max_lines:
                 break
             continue
-        lines.append(_ellipsize(draw, word, font, max_width))
+        lines.append(_ellipsize(draw, word, fs, max_width))
         i += 1
         if len(lines) >= max_lines:
             break
@@ -168,25 +263,43 @@ def _wrap_lines(text: str, font, draw, max_width: int, max_lines: int = 3) -> li
         i = len(words)
 
     if i < len(words) and lines:
-        lines[-1] = _ellipsize(draw, lines[-1].rstrip("…"), font, max_width)
+        lines[-1] = _ellipsize(draw, lines[-1].rstrip("…"), fs, max_width)
 
     return lines[:max_lines]
 
 
-def _pick_font_size(lang: str, path: Path, draw, text: str, max_width: int):
+def _build_font_set(lang: str, size: int) -> FontSet | None:
     from PIL import ImageFont
 
+    if lang != "en":
+        _warn_if_no_shaping()
+    primary_path = _ensure_font(lang)
+    if primary_path is None:
+        return None
+    latin_path = primary_path if lang == "en" else _ensure_font("en")
+
+    primary = ImageFont.truetype(str(primary_path), size=size)
+    primary_cp = _coverage(primary_path)
+    if latin_path is None or latin_path == primary_path:
+        return FontSet(primary, primary_cp, None, frozenset())
+
+    latin = ImageFont.truetype(str(latin_path), size=size)
+    return FontSet(primary, primary_cp, latin, _coverage(latin_path))
+
+
+def _pick_font_size(lang: str, draw, text: str, max_width: float):
     # Indic scripts need a touch more room per glyph.
     sizes = [52, 48, 44, 40, 36, 32] if lang == "en" else [48, 44, 40, 36, 32, 28]
+    fallback = None
     for size in sizes:
-        font = ImageFont.truetype(str(path), size=size)
-        lines = _wrap_lines(text, font, draw, max_width, max_lines=3)
-        if len(lines) <= 3:
-            # Prefer sizes that fit in ≤3 lines without ellipsis when possible.
-            if not (lines and lines[-1].endswith("…")) or size <= 36:
-                return font, lines
-    font = ImageFont.truetype(str(path), size=sizes[-1])
-    return font, _wrap_lines(text, font, draw, max_width, max_lines=3)
+        fs = _build_font_set(lang, size)
+        if fs is None:
+            return None, []
+        lines = _wrap_lines(text, fs, draw, max_width, max_lines=3)
+        fallback = (fs, lines)
+        if lines and not lines[-1].endswith("…"):
+            return fs, lines
+    return fallback if fallback else (None, [])
 
 
 def bake_notification_image(
@@ -195,7 +308,7 @@ def bake_notification_image(
     lang: str = "en",
 ) -> bytes | None:
     """Download ``image_url``, overlay gradient + headline, return JPEG bytes."""
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw
 
     if not image_url or not image_url.startswith("http"):
         return None
@@ -220,27 +333,23 @@ def bake_notification_image(
     margin_bottom = 44
     max_width = NOTIF_WIDTH - margin_x * 2
 
-    font_path = _ensure_font(lang)
-    if font_path is None:
-        font = ImageFont.load_default()
-        lines = _wrap_lines(title, font, draw, max_width, max_lines=3)
+    font_set, lines = _pick_font_size(lang, draw, title, max_width)
+    if font_set is None or not lines:
+        print(f"[warn] no usable font for lang={lang}; skipping text overlay")
     else:
-        font, lines = _pick_font_size(lang, font_path, draw, title, max_width)
+        # Baseline-align every line so mixed-script runs sit on one baseline.
+        metrics = [font_set.metrics(line) for line in lines]
+        line_heights = [a + d for a, d in metrics]
+        gap = max(8, int(line_heights[0] * 0.20))
+        block_h = sum(line_heights) + gap * (len(lines) - 1)
+        top = NOTIF_HEIGHT - margin_bottom - block_h
 
-    # Stack lines upward from the bottom margin.
-    line_heights = []
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=font)
-        line_heights.append(bbox[3] - bbox[1])
-    gap = max(8, int((line_heights[0] if line_heights else 40) * 0.22))
-    block_h = sum(line_heights) + gap * max(0, len(lines) - 1)
-    y = NOTIF_HEIGHT - margin_bottom - block_h
-
-    for line, lh in zip(lines, line_heights):
-        # Soft shadow for legibility on bright gradient edges.
-        draw.text((margin_x + 1, y + 2), line, font=font, fill=(0, 0, 0, 160))
-        draw.text((margin_x, y), line, font=font, fill=(255, 255, 255))
-        y += lh + gap
+        for line, (ascent, descent) in zip(lines, metrics):
+            baseline = top + ascent
+            # Soft shadow for legibility on bright gradient edges.
+            _draw_runs(draw, margin_x + 1, baseline + 2, line, font_set, (0, 0, 0))
+            _draw_runs(draw, margin_x, baseline, line, font_set, (255, 255, 255))
+            top = baseline + descent + gap
 
     out = io.BytesIO()
     canvas.save(out, format="JPEG", quality=NOTIF_JPEG_QUALITY, optimize=True)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bake Inshorts-style notification images and upload them to Cloudflare R2.
 
-Produces a 16:9 JPEG with a dark bottom gradient and white headline so FCM's
+Produces a tall JPEG with a heavy bottom scrim and white headline so FCM's
 standard big-picture notification shows text *inside* the image.
 """
 
@@ -18,8 +18,9 @@ import requests
 # --------------------------------------------------------------------------- #
 # Config
 # --------------------------------------------------------------------------- #
-NOTIF_WIDTH = int(os.getenv("NOTIF_IMG_WIDTH", "1200"))
-NOTIF_HEIGHT = int(os.getenv("NOTIF_IMG_HEIGHT", "675"))
+# ~1:1 reads taller in the shade than 16:9 (closer to Inshorts).
+NOTIF_WIDTH = int(os.getenv("NOTIF_IMG_WIDTH", "1080"))
+NOTIF_HEIGHT = int(os.getenv("NOTIF_IMG_HEIGHT", "1080"))
 NOTIF_JPEG_QUALITY = int(os.getenv("NOTIF_JPEG_QUALITY", "85"))
 NOTIF_PREFIX = os.getenv("NOTIF_R2_PREFIX", "notif").strip().strip("/") or "notif"
 NOTIF_CLEANUP_DAYS = float(os.getenv("NOTIF_CLEANUP_DAYS", "7"))
@@ -81,6 +82,29 @@ def _ensure_font(lang: str) -> Path | None:
     return dest
 
 
+def _clean_headline(title: str) -> str:
+    """Drop the kicker before the first colon so the overlay stays short.
+
+    ``Indian Idol 16 Winner: ओडिशा की बेटी…`` → ``ओडिशा की बेटी…``
+    Skips pure time prefixes like ``3:45 PM kickoff``.
+    """
+    text = re.sub(r"\s+", " ", (title or "").strip())
+    if not text:
+        return text
+    for sep in (":", "\uff1a"):  # ASCII + fullwidth colon
+        if sep not in text:
+            continue
+        before, after = text.split(sep, 1)
+        before, after = before.strip(), after.strip()
+        if not after:
+            continue
+        # Don't treat clock times as kickers.
+        if re.fullmatch(r"\d{1,2}", before):
+            continue
+        return after
+    return text
+
+
 def _cover_crop(img, width: int, height: int):
     """Scale+center-crop like CSS object-fit: cover."""
     from PIL import Image
@@ -98,23 +122,29 @@ def _cover_crop(img, width: int, height: int):
     return resized.crop((left, top, left + width, top + height))
 
 
-def _draw_bottom_gradient(base, start_ratio: float = 0.48) -> None:
-    """Paint a transparent→black vertical gradient over the bottom of ``base``."""
+def _draw_bottom_gradient(base, start_ratio: float = 0.38) -> None:
+    """Heavy transparent→black scrim over the lower half (Inshorts-like)."""
     from PIL import Image
 
     w, h = base.size
     start_y = int(h * start_ratio)
     span = max(1, h - start_y)
-    # Build a 1×span alpha ramp, then stretch — much faster than per-pixel loops.
     ramp = Image.new("L", (1, span))
     ramp_px = ramp.load()
     for y in range(span):
         t = y / span
-        ramp_px[0, y] = int(min(230, (t ** 1.35) * 240))
-    alpha = Image.new("L", (w, h), 0)
-    alpha.paste(ramp.resize((w, span), Image.BILINEAR), (0, start_y))
+        # Smooth ease-in, then lock near-full black across the text band.
+        if t < 0.45:
+            alpha = int((t / 0.45) ** 1.1 * 160)
+        else:
+            # 160 → 250 over the remaining 55%
+            u = (t - 0.45) / 0.55
+            alpha = int(160 + u ** 0.85 * 90)
+        ramp_px[0, y] = min(255, alpha)
+    alpha_img = Image.new("L", (w, h), 0)
+    alpha_img.paste(ramp.resize((w, span), Image.BILINEAR), (0, start_y))
     black = Image.new("RGBA", (w, h), (0, 0, 0, 255))
-    black.putalpha(alpha)
+    black.putalpha(alpha_img)
     composed = Image.alpha_composite(base.convert("RGBA"), black)
     base.paste(composed.convert("RGB"))
 
@@ -330,10 +360,11 @@ def bake_notification_image(
 
     draw = ImageDraw.Draw(canvas)
     margin_x = 48
-    margin_bottom = 44
+    margin_bottom = 52
     max_width = NOTIF_WIDTH - margin_x * 2
+    headline = _clean_headline(title)
 
-    font_set, lines = _pick_font_size(lang, draw, title, max_width)
+    font_set, lines = _pick_font_size(lang, draw, headline, max_width)
     if font_set is None or not lines:
         print(f"[warn] no usable font for lang={lang}; skipping text overlay")
     else:

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Bake Inshorts-style notification images and upload them to Cloudflare R2.
 
-Produces a tall JPEG with a heavy bottom scrim and white headline so FCM's
+Produces a JPEG with a heavy bottom scrim and white headline so FCM's
 standard big-picture notification shows text *inside* the image.
+
+Aspect is ~2:1 — Android's BigPicture view crops taller (1:1) images and
+clips the bottom text. Inshorts can go taller because it uses a custom
+notification layout; with stock FCM image we must fit the shade viewport.
 """
 
 from __future__ import annotations
@@ -18,10 +22,12 @@ import requests
 # --------------------------------------------------------------------------- #
 # Config
 # --------------------------------------------------------------------------- #
-# ~1:1 reads taller in the shade than 16:9 (closer to Inshorts).
-NOTIF_WIDTH = int(os.getenv("NOTIF_IMG_WIDTH", "1080"))
-NOTIF_HEIGHT = int(os.getenv("NOTIF_IMG_HEIGHT", "1080"))
+# 2:1 fits Android BigPicture without bottom crop (1:1 was getting clipped).
+NOTIF_WIDTH = int(os.getenv("NOTIF_IMG_WIDTH", "1200"))
+NOTIF_HEIGHT = int(os.getenv("NOTIF_IMG_HEIGHT", "600"))
 NOTIF_JPEG_QUALITY = int(os.getenv("NOTIF_JPEG_QUALITY", "85"))
+# Keep text above this fraction of the canvas — survives minor OEM crop.
+NOTIF_SAFE_BOTTOM = float(os.getenv("NOTIF_SAFE_BOTTOM", "0.10"))
 NOTIF_PREFIX = os.getenv("NOTIF_R2_PREFIX", "notif").strip().strip("/") or "notif"
 NOTIF_CLEANUP_DAYS = float(os.getenv("NOTIF_CLEANUP_DAYS", "7"))
 FONT_CACHE_DIR = Path(os.getenv("NOTIF_FONT_DIR", "/tmp/updato_notif_fonts"))
@@ -217,6 +223,20 @@ class FontSet:
             descent = max(descent, d)
         return ascent, descent
 
+    def ink_extent(self, draw, text: str) -> tuple[int, int]:
+        """Real ink ascent/descent from textbbox (catches Indic descenders)."""
+        ascent, descent = self.metrics(text)
+        x = 0.0
+        top = 0
+        bottom = 0
+        for run, font in self.runs(text):
+            bbox = draw.textbbox((x, 0), run, font=font, anchor="ls")
+            top = min(top, bbox[1])
+            bottom = max(bottom, bbox[3])
+            x += draw.textlength(run, font=font)
+        # Prefer ink box when it's taller than font metrics (common for Devanagari).
+        return max(ascent, -top), max(descent, bottom)
+
 
 _coverage_cache: dict[Path, frozenset[int]] = {}
 _shaping_checked = False
@@ -318,14 +338,15 @@ def _build_font_set(lang: str, size: int) -> FontSet | None:
 
 
 def _pick_font_size(lang: str, draw, text: str, max_width: float):
-    # Indic scripts need a touch more room per glyph.
-    sizes = [52, 48, 44, 40, 36, 32] if lang == "en" else [48, 44, 40, 36, 32, 28]
+    # Indic: prefer 2 lines so the block fits the BigPicture safe band.
+    max_lines = 2 if lang != "en" else 3
+    sizes = [48, 44, 40, 36, 32, 28] if lang == "en" else [44, 40, 36, 32, 28, 26]
     fallback = None
     for size in sizes:
         fs = _build_font_set(lang, size)
         if fs is None:
             return None, []
-        lines = _wrap_lines(text, fs, draw, max_width, max_lines=3)
+        lines = _wrap_lines(text, fs, draw, max_width, max_lines=max_lines)
         fallback = (fs, lines)
         if lines and not lines[-1].endswith("…"):
             return fs, lines
@@ -360,7 +381,8 @@ def bake_notification_image(
 
     draw = ImageDraw.Draw(canvas)
     margin_x = 48
-    margin_bottom = 52
+    # Bottom safe zone — Android BigPicture often clips a few % at the edge.
+    margin_bottom = max(72, int(NOTIF_HEIGHT * NOTIF_SAFE_BOTTOM))
     max_width = NOTIF_WIDTH - margin_x * 2
     headline = _clean_headline(title)
 
@@ -368,16 +390,17 @@ def bake_notification_image(
     if font_set is None or not lines:
         print(f"[warn] no usable font for lang={lang}; skipping text overlay")
     else:
-        # Baseline-align every line so mixed-script runs sit on one baseline.
-        metrics = [font_set.metrics(line) for line in lines]
-        line_heights = [a + d for a, d in metrics]
-        gap = max(8, int(line_heights[0] * 0.20))
-        block_h = sum(line_heights) + gap * (len(lines) - 1)
+        # Ink extents catch Indic descenders that font.getmetrics() under-reports.
+        extents = [font_set.ink_extent(draw, line) for line in lines]
+        line_heights = [a + d for a, d in extents]
+        gap = max(10, int(line_heights[0] * 0.22))
+        # Extra pad under the last line so matras/descenders aren't clipped.
+        descender_pad = max(12, extents[-1][1] // 2)
+        block_h = sum(line_heights) + gap * (len(lines) - 1) + descender_pad
         top = NOTIF_HEIGHT - margin_bottom - block_h
 
-        for line, (ascent, descent) in zip(lines, metrics):
+        for line, (ascent, descent) in zip(lines, extents):
             baseline = top + ascent
-            # Soft shadow for legibility on bright gradient edges.
             _draw_runs(draw, margin_x + 1, baseline + 2, line, font_set, (0, 0, 0))
             _draw_runs(draw, margin_x, baseline, line, font_set, (255, 255, 255))
             top = baseline + descent + gap

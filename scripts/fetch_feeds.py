@@ -715,7 +715,7 @@ def scrape_article(entry: dict, lang: str) -> dict | None:
         if _looks_like_mojibake(title) and entry.get("title"):
             title = entry["title"]
         title = _repair_mojibake(title)
-        description = _repair_mojibake(description)
+        description = clean_description(_repair_mojibake(description))
 
         pub_time = entry["published_time"]
         raw_time = (pub_time.astimezone(IST) if pub_time.tzinfo else pub_time.replace(tzinfo=IST)).isoformat()
@@ -780,6 +780,88 @@ def _repair_mojibake(text: str) -> str:
     except (UnicodeEncodeError, UnicodeDecodeError):
         pass
     return text
+
+
+# Common publisher / wire / category tails publishers append to OG descriptions.
+_KNOWN_PUBLISHER_TAILS = (
+    "times now", "times now navbharat", "navbharat", "times of india", "toi",
+    "ndtv", "aaj tak", "india today", "moneycontrol", "hindustan times",
+    "the hindu", "indian express", "ani", "pti", "reuters", "bloomberg",
+    "bbc", "cnn", "zee news", "abp", "news18", "firstpost", "scroll",
+    "the wire", "print", "livemint", "economic times", "business standard",
+    "dnaindia", "oneindia", "jagran", "amar ujala", "bhaskar", "patrika",
+)
+
+
+def _looks_like_attribution_segment(segment: str) -> bool:
+    """True for trailing bits like ``Times Now Navbharat`` or ``लाइफस्टाइल News``."""
+    s = segment.strip(" .·•|/-—–")
+    if not s or len(s) > 55:
+        return False
+    low = s.lower()
+    if any(p in low for p in _KNOWN_PUBLISHER_TAILS):
+        return True
+    # ``Lifestyle News`` / ``लाइफस्टाइल News`` category tags
+    if re.search(r"\bnews\b", low) and len(s.split()) <= 4:
+        return True
+    # Short Title-Case Latin brand: ``Moneycontrol``, ``The Hindu``
+    if re.fullmatch(r"[A-Za-z][A-Za-z0-9&'.\-\s]{0,48}", s):
+        words = [w for w in s.split() if w]
+        if 1 <= len(words) <= 5:
+            titled = sum(1 for w in words if w[:1].isupper())
+            if titled >= max(1, len(words) // 2):
+                return True
+    return False
+
+
+def clean_description(text: str) -> str:
+    """Strip trailing publisher / category attributions from OG descriptions.
+
+    e.g. ``…आवाज बनीं बेटियां, लाइफस्टाइल News, Times Now Navbharat.``
+      → ``…आवाज बनीं बेटियां``
+    """
+    text = re.sub(r"\s+", " ", (text or "").strip())
+    if not text:
+        return text
+
+    # Peel ``, Foo`` / ``| Foo`` / ``— Foo`` / `` - Foo`` tails.
+    # Do NOT treat mid-word hyphens (rate-cut) as separators.
+    tail_re = re.compile(
+        r"(?:,\s*|\|\s*|[•·]\s*|/\s*|—\s*|–\s*|\s+-\s+)"
+        r"([^,|•·/—–]{1,60})$"
+    )
+    peeled = False
+    for _ in range(4):
+        m = tail_re.search(text)
+        if not m:
+            break
+        if not _looks_like_attribution_segment(m.group(1)):
+            break
+        text = text[: m.start()].rstrip(" ,.|•·/—–")
+        peeled = True
+
+    # ``. Moneycontrol`` / ``. Times of India`` (period + Latin brand, no comma)
+    m = re.search(r"\.\s+([A-Z][A-Za-z0-9&'.\-\s]{1,40})\.?$", text)
+    if m and _looks_like_attribution_segment(m.group(1)):
+        text = text[: m.start()].rstrip()
+        peeled = True
+
+    # ``(ANI)`` / ``(PTI)`` wire credit at the end
+    wired = re.sub(
+        r"\s*\((?:ANI|PTI|IANS|AFP|AP|Reuters)\)\s*\.?$",
+        "",
+        text,
+        flags=re.I,
+    )
+    if wired != text:
+        peeled = True
+        text = wired
+
+    # Only strip a trailing period if we removed an attribution (keep normal
+    # sentence-final periods otherwise).
+    if peeled:
+        text = text.rstrip(" ,.|")
+    return text.strip()
 
 
 def is_acceptable(article: dict) -> bool:

@@ -22,8 +22,8 @@ Everything is env-overridable so the same script runs locally and in CI:
   DRY_RUN            "1" to build + print but NOT send
   SERVICE_ACCOUNT_FILE   path to key json (default: service_account.json)
   FCM_SERVICE_ACCOUNT    raw key json (used if the file is absent)
-  R2_PUBLIC_BASE / R2_*  bake headline into image and host on Cloudflare R2
-  BAKE_NOTIF_IMAGE       "0" to disable baking (default: on when R2 is configured)
+  R2_PUBLIC_BASE         preferred CDN base for reading feeds
+  BAKE_NOTIF_IMAGE       "1" to bake headline into the image (default: off)
 """
 
 from __future__ import annotations
@@ -68,11 +68,11 @@ REQUEST_TIMEOUT = 15
 
 
 def _should_bake() -> bool:
-    if BAKE_NOTIF_IMAGE is False:
-        return False
+    # Off by default — stock FCM title/body + original article image.
+    # Set BAKE_NOTIF_IMAGE=1 to re-enable Inshorts-style baked images.
     if BAKE_NOTIF_IMAGE is True:
         return True
-    return r2_configured() or DRY_RUN
+    return False
 
 
 def _env_int(name: str, default: int) -> int:

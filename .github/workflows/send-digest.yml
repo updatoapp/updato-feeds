@@ -81,7 +81,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          BAKE_NOTIF_IMAGE: "1"
+          BAKE_NOTIF_IMAGE: "0"
         run: |
           # Fall back to the default language list when the input is blank.
           if [ -z "$LANGS" ]; then unset LANGS; fi

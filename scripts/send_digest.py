@@ -474,12 +474,13 @@ def send_to_topic(access_token: str, project_id: str, topic: str,
     if image_only and image_url:
         # Image carries the headline — no separate title/body above it.
         notification: dict = {"image": image_url}
-        apns_alert: dict = {}
+        apns_alert: dict = {"title": title} if title else {}
     else:
-        notification = {"title": title, "body": body}
+        # Title only — no description/body in the shade.
+        notification = {"title": title}
         if image_url:
             notification["image"] = image_url
-        apns_alert = {"title": title, "body": body}
+        apns_alert = {"title": title}
 
     android_notification: dict = {"click_action": "FLUTTER_NOTIFICATION_CLICK"}
     if image_url:
